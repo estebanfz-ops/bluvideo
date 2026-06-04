@@ -1,5 +1,8 @@
 # System
 masterweb-system/
+
+# Generated at build time — contains Supabase keys, never commit
+env-config.js
 .vercel/
 .env
 .env.local

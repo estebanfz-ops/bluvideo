@@ -208,13 +208,171 @@ const Toast = {
 };
 
 /* -----------------------------------------------------------
+   DATA ACCESS LAYER (Supabase ↔ State bridge)
+   ----------------------------------------------------------- */
+const DB = {
+  // Load all data from Supabase into State
+  async loadAll() {
+    const supa = window.BluvideoSupabase && window.BluvideoSupabase.supabase;
+    if (!supa) return;
+
+    try {
+      // Load posts (cards)
+      const { data: posts } = await supa
+        .from('posts')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      if (posts) {
+        State.cards = posts.map(p => ({
+          id: p.id,
+          title: p.body.split('\n')[0].slice(0, 80) || 'Untitled',
+          status: this._mapStatus(p.status),
+          assignee: p.created_by_name || 'Member 1',
+          platform: (p.platforms || [])[0] || 'LinkedIn',
+          date: p.scheduled_for ? p.scheduled_for.slice(0, 10) : '',
+          content: p.body || '',
+          figma: '',
+          canva: '',
+          createdAt: new Date(p.created_at).getTime(),
+          _supaId: p.id,
+        }));
+      }
+
+      // Load content briefs
+      const { data: briefs } = await supa
+        .from('content_briefs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (briefs) {
+        State.briefs = briefs.map(b => ({
+          id: b.id,
+          title: b.goals ? b.goals.slice(0, 60) : 'Brief ' + b.month_year,
+          platform: (b.platforms || [])[0] || 'LinkedIn',
+          tone: b.tone_notes || '',
+          objective: b.goals || '',
+          audience: '',
+          takeaways: (b.topics || []).join('\n'),
+          cta: '',
+          createdAt: new Date(b.created_at).getTime(),
+          _supaId: b.id,
+          _monthYear: b.month_year,
+        }));
+      }
+
+      // Load analytics
+      const { data: analytics } = await supa
+        .from('analytics_logs')
+        .select('*')
+        .order('week_of', { ascending: false })
+        .limit(12);
+      if (analytics) {
+        State.metrics = analytics.map(a => ({
+          date: a.week_of,
+          reach: a.reach || 0,
+          engage: a.clicks || 0,
+          followers: 0,
+          _supaId: a.id,
+        }));
+      }
+
+      State.save(); // cache locally
+    } catch (err) {
+      console.warn('[DB] loadAll failed:', err);
+    }
+  },
+
+  // Map Supabase post_status enum → app STATUSES ids
+  _mapStatus(supaStatus) {
+    const map = {
+      'draft': 'drafting',
+      'in_review': 'review',
+      'approved': 'approved',
+      'scheduled': 'scheduled',
+      'published': 'published',
+      'failed': 'published',
+    };
+    return map[supaStatus] || 'drafting';
+  },
+
+  // Map app status → Supabase enum
+  _toSupaStatus(appStatus) {
+    const map = {
+      'ideation': 'draft',
+      'drafting': 'draft',
+      'review': 'in_review',
+      'approved': 'approved',
+      'scheduled': 'scheduled',
+      'published': 'published',
+    };
+    return map[appStatus] || 'draft';
+  },
+
+  async saveCard(card) {
+    const supa = window.BluvideoSupabase && window.BluvideoSupabase.supabase;
+    if (!supa || !App.currentUser) return;
+
+    const payload = {
+      body: card.content || card.title,
+      platforms: [card.platform],
+      status: this._toSupaStatus(card.status),
+      scheduled_for: card.date || null,
+      created_by: App.currentUser.id,
+    };
+
+    if (card._supaId) {
+      await supa.from('posts').update(payload).eq('id', card._supaId);
+    } else {
+      const { data } = await supa.from('posts').insert(payload).select().single();
+      if (data) card._supaId = data.id;
+    }
+  },
+
+  async deleteCard(card) {
+    const supa = window.BluvideoSupabase && window.BluvideoSupabase.supabase;
+    if (!supa || !card._supaId) return;
+    await supa.from('posts').update({ deleted_at: new Date().toISOString() }).eq('id', card._supaId);
+  },
+
+  async saveBrief(brief) {
+    const supa = window.BluvideoSupabase && window.BluvideoSupabase.supabase;
+    if (!supa || !App.currentUser) return;
+
+    const monthYear = brief._monthYear || new Date().toISOString().slice(0, 7);
+    const payload = {
+      month_year: monthYear,
+      goals: brief.objective || brief.title,
+      topics: brief.takeaways ? brief.takeaways.split('\n').filter(Boolean) : [],
+      tone_notes: brief.tone || '',
+      platforms: [brief.platform],
+      created_by: App.currentUser.id,
+    };
+
+    if (brief._supaId) {
+      await supa.from('content_briefs').update(payload).eq('id', brief._supaId);
+    } else {
+      const { data } = await supa
+        .from('content_briefs')
+        .upsert(payload, { onConflict: 'month_year' })
+        .select().single();
+      if (data) brief._supaId = data.id;
+    }
+  },
+};
+
+/* -----------------------------------------------------------
    ROUTING
    ----------------------------------------------------------- */
 const App = {
   currentView: 'dashboard',
   cardEditingId: null,
+  currentUser: null,
 
-  init() {
+  async init() {
+    // Auth gate: show login screen until session confirmed
+    this.showAuthScreen();
+    await this.initAuth();
+    // rest of init continues only after auth resolved
     State.load();
     this.bindGlobal();
     this.bindSidebar();
@@ -229,6 +387,88 @@ const App = {
     this.applyTheme(localStorage.getItem('bluVideoOS_theme') || 'dark');
     this.renderAll();
     this.switchView('dashboard');
+  },
+
+  showAuthScreen() {
+    const screen = document.getElementById('auth-screen');
+    const app = document.getElementById('app');
+    if (screen) screen.style.display = 'flex';
+    if (app) app.style.visibility = 'hidden';
+  },
+
+  hideAuthScreen() {
+    const screen = document.getElementById('auth-screen');
+    const app = document.getElementById('app');
+    if (screen) screen.style.display = 'none';
+    if (app) app.style.visibility = 'visible';
+  },
+
+  async initAuth() {
+    // Wait for window.BluvideoSupabase to be available (loaded as module)
+    await new Promise(resolve => {
+      if (window.BluvideoSupabase) { resolve(); return; }
+      const interval = setInterval(() => {
+        if (window.BluvideoSupabase) { clearInterval(interval); resolve(); }
+      }, 50);
+      setTimeout(() => { clearInterval(interval); resolve(); }, 3000); // fallback
+    });
+
+    const supa = window.BluvideoSupabase;
+    if (!supa) {
+      // Supabase not available — fall back to localStorage-only mode
+      console.warn('[BluVideo] Supabase not available, running in local mode');
+      this.hideAuthScreen();
+      return;
+    }
+
+    // Check for existing session
+    const user = await supa.getUser();
+    if (user) {
+      this.currentUser = user;
+      this.hideAuthScreen();
+      await DB.loadAll(); // load data from Supabase
+      return;
+    }
+
+    // No session — set up login form
+    this.setupLoginForm();
+  },
+
+  setupLoginForm() {
+    const form = document.getElementById('auth-form');
+    const emailEl = document.getElementById('auth-email');
+    const passEl = document.getElementById('auth-password');
+    const errEl = document.getElementById('auth-error');
+    const submitBtn = document.getElementById('auth-submit');
+
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in…';
+
+      const { data, error } = await window.BluvideoSupabase.signIn(
+        emailEl.value.trim(),
+        passEl.value
+      );
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign in';
+
+      if (error) {
+        errEl.textContent = error.message || 'Sign in failed. Check your credentials.';
+        return;
+      }
+
+      this.currentUser = data.user;
+      this.hideAuthScreen();
+      await DB.loadAll();
+      this.renderAll();
+      this.switchView(this.currentView);
+      Toast.show('Signed in', 'success');
+    });
   },
 
   applyTheme(theme) {
@@ -348,6 +588,7 @@ const App = {
         State.cards.unshift(card);
         State.pushActivity(`Quick-added "<span class="em">${escapeHtml(card.title)}</span>" to Ideation`, 'plus');
         State.save();
+        DB.saveCard(card).catch(console.warn);
         qa.value = '';
         App.renderDashboard();
         App.renderKanban();
@@ -541,6 +782,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     State.briefs.unshift(brief);
     State.pushActivity(`Saved brief "<span class="em">${escapeHtml(v.title)}</span>"`, 'doc');
     State.save();
+    DB.saveBrief(brief).catch(console.warn);
     App.renderBriefList();
     App.renderDashboard();
     Toast.show('Brief saved to library', 'success');
@@ -687,6 +929,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
           State.cards.unshift(card);
           State.pushActivity(`Added "<span class="em">${escapeHtml(card.title)}</span>" to ${statusLabel(card.status)}`, 'plus');
           State.save();
+          DB.saveCard(card).catch(console.warn);
           input.value = '';
           App.renderKanban();
           // refocus same column
@@ -747,10 +990,13 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
         State.cards[i] = { ...State.cards[i], ...data };
         if (prevStatus !== data.status) State.pushActivity(`Moved "<span class="em">${escapeHtml(title)}</span>" to ${statusLabel(data.status)}`, 'arrow');
         else State.pushActivity(`Updated "<span class="em">${escapeHtml(title)}</span>"`, 'edit');
+        DB.saveCard(State.cards[i]).catch(console.warn);
       }
     } else {
-      State.cards.unshift({ id: uid('c_'), ...data, createdAt: Date.now() });
+      const newCard = { id: uid('c_'), ...data, createdAt: Date.now() };
+      State.cards.unshift(newCard);
       State.pushActivity(`Created "<span class="em">${escapeHtml(title)}</span>"`, 'plus');
+      DB.saveCard(newCard).catch(console.warn);
     }
     State.save();
     App.renderKanban();
@@ -767,6 +1013,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     const removed = State.cards.splice(i, 1)[0];
     State.pushActivity(`Deleted "<span class="em">${escapeHtml(removed.title)}</span>"`, 'trash');
     State.save();
+    DB.deleteCard(removed).catch(console.warn);
     App.renderKanban();
     App.renderDashboard();
     App.renderCalendar();
@@ -1143,9 +1390,10 @@ function setupKanbanDnd() {
         c.status = newStatus;
         State.pushActivity(`Moved "<span class="em">${escapeHtml(c.title)}</span>" → ${statusLabel(newStatus)}`, 'arrow');
         State.save();
+        DB.saveCard(c).catch(console.warn);
         App.renderKanban();
         App.renderDashboard();
-        Toast.show(`Moved to ${statusLabel(newStatus)}`, 'info', { label: 'Undo', handler: () => { c.status = prev; State.save(); App.renderKanban(); App.renderDashboard(); } });
+        Toast.show(`Moved to ${statusLabel(newStatus)}`, 'info', { label: 'Undo', handler: () => { c.status = prev; State.save(); DB.saveCard(c).catch(console.warn); App.renderKanban(); App.renderDashboard(); } });
       }
     });
   });
@@ -1195,10 +1443,11 @@ function setupCalendarDnd() {
         if (c.status === 'ideation' || c.status === 'drafting') c.status = 'scheduled';
         State.pushActivity(`Rescheduled "<span class="em">${escapeHtml(c.title)}</span>" → ${fmtDate(iso)}`, 'clock');
         State.save();
+        DB.saveCard(c).catch(console.warn);
         App.renderCalendar();
         App.renderKanban();
         App.renderDashboard();
-        Toast.show(`Rescheduled to ${fmtDate(iso)}`, 'success', { label: 'Undo', handler: () => { c.date = prev; State.save(); App.renderCalendar(); App.renderKanban(); App.renderDashboard(); } });
+        Toast.show(`Rescheduled to ${fmtDate(iso)}`, 'success', { label: 'Undo', handler: () => { c.date = prev; State.save(); DB.saveCard(c).catch(console.warn); App.renderCalendar(); App.renderKanban(); App.renderDashboard(); } });
       }
     });
   });
@@ -1398,8 +1647,8 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => App.init());
 } else App.init();
 
-// Expose for debugging
-window.BluVideoOS = { State, App, Palette };
+// Expose for debugging (settings excluded — contains sensitive tokens)
+window.BluVideoOS = { State: { briefs: State.briefs, cards: State.cards, metrics: State.metrics, activity: State.activity }, App };
 
 // Spin keyframe for sync icon
 const style = document.createElement('style');

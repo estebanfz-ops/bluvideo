@@ -153,7 +153,8 @@ CREATE TRIGGER trg_analytics_updated_at
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
 BEGIN
   INSERT INTO profiles (id, display_name, role)
   VALUES (

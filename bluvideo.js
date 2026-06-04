@@ -40,7 +40,7 @@ const State = {
   cards: [],
   metrics: [],
   activity: [],
-  settings: { metaPageId: '', metaToken: '', supaUrl: '', supaKey: '', lastMetaSync: null },
+  settings: { metaPageId: '', metaToken: '', supaUrl: '', supaKey: '', lastMetaSync: null, cloudinaryCloud: '', cloudinaryPreset: '' },
 
   load() {
     try {
@@ -208,6 +208,57 @@ const Toast = {
 };
 
 /* -----------------------------------------------------------
+   CLOUDINARY UPLOAD HELPER
+   ----------------------------------------------------------- */
+const Cloudinary = {
+  get cloud()  { return State.settings.cloudinaryCloud  || ''; },
+  get preset() { return State.settings.cloudinaryPreset || ''; },
+  isReady() { return !!(this.cloud && this.preset && window.cloudinary); },
+  upload(onSuccess) {
+    if (!this.isReady()) {
+      Toast.show('Set Cloudinary cloud name & preset in Integrations', 'warn', {
+        label: 'Open', handler: () => App.switchView('settings')
+      });
+      return;
+    }
+    window.cloudinary.openUploadWidget({
+      cloudName: this.cloud,
+      uploadPreset: this.preset,
+      sources: ['local', 'url', 'camera'],
+      multiple: true,
+      maxFiles: 10,
+      resourceType: 'auto',
+    }, (err, result) => {
+      if (!err && result && result.event === 'success') onSuccess(result.info.secure_url);
+    });
+  }
+};
+
+function renderMediaThumbs(urls) {
+  const el = $('#c-media-thumbs');
+  if (!el) return;
+  if (!urls || !urls.length) { el.innerHTML = ''; return; }
+  el.innerHTML = urls.map((url, i) => {
+    const isVideo = /\.(mp4|mov|webm|avi)(\?|$)/i.test(url);
+    return `<div class="media-thumb">
+      ${isVideo
+        ? `<div class="media-thumb-video">${svgIcon('send')}<span>Video</span></div>`
+        : `<img src="${escapeHtml(url)}" alt="" loading="lazy" />`
+      }
+      <button class="media-thumb-del" data-idx="${i}" title="Remove" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.media-thumb-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      App._mediaUrls.splice(+btn.dataset.idx, 1);
+      renderMediaThumbs(App._mediaUrls);
+    });
+  });
+}
+
+/* -----------------------------------------------------------
    DATA ACCESS LAYER (Supabase ↔ State bridge)
    ----------------------------------------------------------- */
 const DB = {
@@ -232,6 +283,7 @@ const DB = {
           platform: (p.platforms || [])[0] || 'LinkedIn',
           date: p.scheduled_for ? p.scheduled_for.slice(0, 10) : '',
           content: p.body || '',
+          mediaUrls: p.media_urls || [],
           figma: '',
           canva: '',
           createdAt: new Date(p.created_at).getTime(),
@@ -315,6 +367,7 @@ const DB = {
     const payload = {
       body: card.content || card.title,
       platforms: [card.platform],
+      media_urls: card.mediaUrls || [],
       status: this._toSupaStatus(card.status),
       scheduled_for: card.date || null,
       created_by: App.currentUser.id,
@@ -945,6 +998,13 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   /* -------- CARD MODAL -------- */
   bindCardModal() {
     $('#card-scrim').addEventListener('click', (e) => { if (e.target === $('#card-scrim')) App.closeCardModal(); });
+    $('#c-upload-btn').addEventListener('click', () => {
+      Cloudinary.upload((url) => {
+        App._mediaUrls = App._mediaUrls || [];
+        App._mediaUrls.push(url);
+        renderMediaThumbs(App._mediaUrls);
+      });
+    });
   },
 
   openCardModal(id) {
@@ -959,6 +1019,8 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#c-figma').value = card ? (card.figma || '') : '';
     $('#c-canva').value = card ? (card.canva || '') : '';
     $('#c-content').value = card ? (card.content || '') : '';
+    App._mediaUrls = card ? [...(card.mediaUrls || [])] : [];
+    renderMediaThumbs(App._mediaUrls);
     $('#c-delete').style.display = card ? 'inline-flex' : 'none';
     $('#c-meta').textContent = card ? `Created ${fmtRelative(card.createdAt)}` : 'New task';
     $('#card-scrim').classList.add('open');
@@ -982,6 +1044,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       figma: $('#c-figma').value,
       canva: $('#c-canva').value,
       content: $('#c-content').value,
+      mediaUrls: App._mediaUrls || [],
     };
     if (App.cardEditingId) {
       const i = State.cards.findIndex(c => c.id === App.cardEditingId);
@@ -1188,6 +1251,8 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#set-meta-token').value = State.settings.metaToken || '';
     $('#set-supa-url').value = State.settings.supaUrl || '';
     $('#set-supa-key').value = State.settings.supaKey || '';
+    $('#set-cloud-name').value = State.settings.cloudinaryCloud || '';
+    $('#set-cloud-preset').value = State.settings.cloudinaryPreset || '';
     $('#meta-form').addEventListener('submit', (e) => {
       e.preventDefault();
       State.settings.metaPageId = $('#set-meta-page').value;
@@ -1204,15 +1269,26 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       App.renderIntegrationStatus();
       Toast.show('Supabase keys saved', 'success');
     });
+    $('#cloudinary-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      State.settings.cloudinaryCloud  = $('#set-cloud-name').value.trim();
+      State.settings.cloudinaryPreset = $('#set-cloud-preset').value.trim();
+      State.save();
+      App.renderIntegrationStatus();
+      Toast.show('Cloudinary config saved', 'success');
+    });
   },
 
   renderIntegrationStatus() {
-    const metaConnected = State.settings.metaToken && State.settings.metaPageId;
-    const supaConnected = State.settings.supaUrl && State.settings.supaKey;
+    const metaConnected       = State.settings.metaToken && State.settings.metaPageId;
+    const supaConnected       = State.settings.supaUrl && State.settings.supaKey;
+    const cloudinaryConnected = State.settings.cloudinaryCloud && State.settings.cloudinaryPreset;
     $('#meta-status').classList.toggle('connected', !!metaConnected);
     $('#meta-status').textContent = metaConnected ? 'Connected' : 'Disconnected';
     $('#supa-status').classList.toggle('connected', !!supaConnected);
     $('#supa-status').textContent = supaConnected ? 'Connected' : 'Disconnected';
+    $('#cloudinary-status').classList.toggle('connected', !!cloudinaryConnected);
+    $('#cloudinary-status').textContent = cloudinaryConnected ? 'Connected' : 'Disconnected';
     $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';
   },
 

@@ -1539,3 +1539,66 @@ html[data-theme="light"] .tool-open { background: oklch(22% 0.01 250); color: ok
 }
 .auth-btn:hover { opacity: 0.85; }
 .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============================================================
+   MEDIA UPLOAD — card modal
+   ============================================================ */
+.media-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.media-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.media-thumb {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+.media-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.media-thumb-video {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.media-thumb-video svg { width: 20px; height: 20px; }
+.media-thumb-del {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: oklch(20% 0.01 250 / 0.85);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+.media-thumb-del svg { width: 10px; height: 10px; }
+.media-thumb:hover .media-thumb-del { opacity: 1; }

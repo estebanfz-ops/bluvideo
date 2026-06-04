@@ -14,3 +14,5 @@ Thumbs.db
 
 # Node (for future use)
 node_modules/
+
+.vercel

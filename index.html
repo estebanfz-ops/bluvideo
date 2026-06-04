@@ -668,25 +668,18 @@
               </div>
               <div class="integration-meta">
                 <h4>Buffer</h4>
-                <p>Push directly to your Buffer queue — no tab switching.</p>
+                <p>One-click push from approved or scheduled cards.</p>
               </div>
-              <span class="integration-status" id="buffer-status">Not connected</span>
+              <span class="integration-status" id="buffer-status">Not configured</span>
             </div>
-            <!-- Disconnected: token entry -->
             <form id="buffer-form">
               <div class="field">
-                <label class="label" for="set-buffer-token">Access token</label>
-                <input class="input" type="password" id="set-buffer-token" placeholder="1/xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
-                <span style="font-size:11px; color:var(--text-faint); margin-top:4px; display:block;">Get it at buffer.com/developers/apps → your app → Access Token.</span>
+                <label class="label" for="set-buffer-profile">Buffer profile URL <span style="font-weight:400; color:var(--text-faint);">— optional, pre-selects your channel</span></label>
+                <input class="input" type="text" id="set-buffer-profile" placeholder="https://publish.buffer.com/profile/abc123/queue" autocomplete="off" />
+                <span style="font-size:11px; color:var(--text-faint); margin-top:4px; display:block;">Copy the URL from your Buffer dashboard. Paste the full URL or just the profile ID.</span>
               </div>
-              <button class="btn btn-primary" type="submit" id="buffer-connect-btn" style="width:100%; justify-content:center;">Connect Buffer</button>
+              <button class="btn" type="submit" style="width:100%; justify-content:center;">Save</button>
             </form>
-            <!-- Connected: profile list + disconnect -->
-            <div id="buffer-connected" style="display:none; margin-top:14px;">
-              <div class="label" style="margin-bottom:8px;">Connected channels</div>
-              <div id="buffer-profiles-list" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
-              <button class="btn btn-danger-ghost" id="buffer-disconnect">Disconnect</button>
-            </div>
           </div>
 
           <!-- Cloudinary -->

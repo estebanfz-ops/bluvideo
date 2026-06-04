@@ -1955,6 +1955,34 @@ html[data-theme="light"] .tool-open { background: oklch(22% 0.01 250); color: ok
 .kard-scheduled-time {
   color: oklch(73% 0.16 50);
 }
+.kard-due-time {
+  color: oklch(75% 0.15 195);
+}
 .kard-published-time {
   color: var(--good);
+}
+
+/* Publish via Buffer button on due scheduled cards */
+.kard-publish-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  color: oklch(75% 0.15 195);
+  border-color: oklch(75% 0.15 195 / 0.45);
+  background: oklch(75% 0.15 195 / 0.1);
+  font-weight: 600;
+}
+.kard-publish-btn:hover {
+  border-color: oklch(75% 0.15 195 / 0.8);
+  background: oklch(75% 0.15 195 / 0.18);
+}
+
+/* Mark as Published button in Buffer push panel */
+.bp-mark-published-btn {
+  color: var(--good);
+  border-color: oklch(68% 0.17 152 / 0.4);
+  background: oklch(68% 0.17 152 / 0.08);
+}
+.bp-mark-published-btn:hover {
+  border-color: oklch(68% 0.17 152 / 0.7);
+  background: oklch(68% 0.17 152 / 0.15);
 }

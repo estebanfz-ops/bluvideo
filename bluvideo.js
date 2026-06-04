@@ -485,9 +485,9 @@ const App = {
     this.applyTheme(localStorage.getItem('bluVideoOS_theme') || 'dark');
     this.renderAll();
     this.switchView('dashboard');
-    // Scheduler: run on load + every 60s to publish due posts
-    App.runScheduler();
-    setInterval(() => { if (App.currentUser) App.runScheduler(); }, 60000);
+    // Check for due posts on load + every 60s; publishing is manual via Buffer
+    App.checkDuePosts();
+    setInterval(() => { App.checkDuePosts(); }, 60000);
   },
 
   showAuthScreen() {
@@ -1121,6 +1121,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       </div>
       <div class="bp-foot">
         <button class="btn" id="bp-cancel">Cancel</button>
+        ${card.status === 'scheduled' ? `<button class="btn bp-mark-published-btn" id="bp-mark-published">Mark as Published</button>` : ''}
         <a class="btn btn-primary" href="${escapeHtml(bufferUrl)}" target="_blank" rel="noopener" id="bp-open">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Open Buffer
@@ -1140,6 +1141,23 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
         });
       });
     });
+
+    const markBtn = $('#bp-mark-published');
+    if (markBtn) {
+      markBtn.addEventListener('click', () => {
+        const c = State.cards.find(x => x.id === card.id);
+        if (!c) return;
+        c.status = 'published';
+        c.publishedAt = new Date().toISOString();
+        State.pushActivity(`Published "<span class="em">${escapeHtml(c.title)}</span>" via Buffer`, 'send');
+        State.save();
+        DB.saveCard(c).catch(console.warn);
+        App.closeBufferPush();
+        App.renderKanban();
+        App.renderDashboard();
+        Toast.show('Published!', 'success');
+      });
+    }
   },
 
   closeBufferPush() {
@@ -1184,7 +1202,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     c.date = iso.slice(0, 10);
     c.status = 'scheduled';
     State.pushActivity(
-      `Scheduled "<span class="em">${escapeHtml(c.title)}</span>" for ${publishNow ? 'immediate publish' : fmtDatetime(iso)}`,
+      `Scheduled "<span class="em">${escapeHtml(c.title)}</span>" for ${publishNow ? 'Buffer (now)' : fmtDatetime(iso)}`,
       'clock'
     );
     State.save();
@@ -1193,8 +1211,11 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     this.renderKanban();
     this.renderDashboard();
     this.renderCalendar();
-    Toast.show(publishNow ? 'Queued — will publish within 1 min' : `Scheduled for ${fmtDatetime(iso)}`, 'success');
-    if (publishNow) this.runScheduler();
+    if (publishNow) {
+      this.openBufferPush(c);
+    } else {
+      Toast.show(`Scheduled for ${fmtDatetime(iso)}`, 'success');
+    }
   },
 
   bindScheduleModal() {
@@ -1215,24 +1236,19 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     });
   },
 
-  /* -------- PUBLISHING SCHEDULER -------- */
-  async runScheduler() {
-    const supa = window.BluvideoSupabase?.supabase;
-    if (!supa || !App.currentUser) return;
-    try {
-      const { data, error } = await supa.functions.invoke('cron-scheduler');
-      if (error) { console.warn('[Scheduler]', error); return; }
-      if (data?.processed > 0) {
-        await DB.loadAll();
-        App.renderAll();
-        Toast.show(
-          `${data.processed} post${data.processed > 1 ? 's' : ''} published via Ayrshare`,
-          'success'
-        );
-      }
-    } catch (e) {
-      console.warn('[Scheduler]', e);
-    }
+  /* -------- BUFFER PUBLISH CHECKER -------- */
+  checkDuePosts() {
+    const now = new Date();
+    const due = State.cards.filter(c =>
+      c.status === 'scheduled' && c.scheduledFor && new Date(c.scheduledFor) <= now
+    );
+    if (due.length === 0) return;
+    App.renderKanban();
+    Toast.show(
+      `${due.length} post${due.length > 1 ? 's' : ''} ready — publish via Buffer`,
+      'warn',
+      { label: 'Kanban', handler: () => App.switchView('kanban') }
+    );
   },
 
   saveCard() {
@@ -1843,8 +1859,13 @@ function renderCard(c) {
     </div>`;
   } else if (c.status === 'scheduled') {
     const schFmt = c.scheduledFor ? fmtDatetime(c.scheduledFor) : (c.date ? fmtDate(c.date) : '');
-    if (schFmt) extra = `<div class="kard-time-badge kard-scheduled-time">${svgIcon('clock')} ${schFmt}</div>`;
-    if (!c.scheduledFor) {
+    const isDue = c.scheduledFor && new Date(c.scheduledFor) <= new Date();
+    if (schFmt) extra = `<div class="kard-time-badge ${isDue ? 'kard-due-time' : 'kard-scheduled-time'}">${svgIcon(isDue ? 'send' : 'clock')} ${schFmt}</div>`;
+    if (isDue) {
+      action = `<div class="kard-action">
+        <button class="btn kard-publish-btn" data-publish-buffer="${c.id}">${svgIcon('send')} Publish via Buffer</button>
+      </div>`;
+    } else if (!c.scheduledFor) {
       action = `<div class="kard-action">
         <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Set Publish Time</button>
       </div>`;
@@ -1984,6 +2005,13 @@ function setupKanbanDnd() {
     App.renderKanban();
     App.renderDashboard();
     Toast.show('Moved back to Approved — reschedule to retry', 'info');
+  }));
+
+  board.querySelectorAll('[data-publish-buffer]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const c = State.cards.find(x => x.id === b.dataset.publishBuffer);
+    if (!c) return;
+    App.openBufferPush(c);
   }));
 }
 

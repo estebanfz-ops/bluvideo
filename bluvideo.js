@@ -45,7 +45,7 @@ const State = {
   cards: [],
   metrics: [],
   activity: [],
-  settings: { metaPageId: '', metaToken: '', lastMetaSync: null, bufferProfileId: '', cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
+  settings: { metaPageId: '', metaToken: '', lastMetaSync: null, bufferToken: '', bufferProfiles: [], cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
 
   load() {
     try {
@@ -1147,11 +1147,26 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   },
 
   openBufferPush(card) {
-    const hasMedia = card.mediaUrls && card.mediaUrls.length > 0;
-    const profileId = State.settings.bufferProfileId;
-    const bufferUrl = `https://buffer.com/add?text=${encodeURIComponent(card.content)}${profileId ? `&profile_ids[]=${encodeURIComponent(profileId)}` : ''}`;
-    const isMeta = /instagram|facebook/i.test(card.platform || '');
-    const panel = $('#buffer-push-panel');
+    const hasMedia  = card.mediaUrls && card.mediaUrls.length > 0;
+    const isMeta    = /instagram|facebook/i.test(card.platform || '');
+    const apiMode   = !!(State.settings.bufferToken && (State.settings.bufferProfiles || []).length);
+    const profiles  = State.settings.bufferProfiles || [];
+    const targetSvc = BufferAPI.platformToService(card.platform);
+    const fallbackUrl = `https://buffer.com/add?text=${encodeURIComponent(card.content)}`;
+    const panel     = $('#buffer-push-panel');
+
+    // Profile checkboxes (API mode only)
+    const profilesHtml = apiMode ? `
+      <div class="bp-section-label" style="margin-top:12px;">Push to channel${profiles.length !== 1 ? 's' : ''}</div>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
+        ${profiles.map(p => {
+          const match = targetSvc && p.service === targetSvc;
+          return `<label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+            <input type="checkbox" class="bp-profile-check" value="${escapeHtml(p.id)}"${match ? ' checked' : ''} />
+            <span>${escapeHtml(p.formatted_service || p.service)}${p.username ? ` — <span style="color:var(--text-faint);">${escapeHtml(p.username)}</span>` : ''}</span>
+          </label>`;
+        }).join('')}
+      </div>` : '';
 
     panel.innerHTML = `
       <div class="bp-head">
@@ -1165,6 +1180,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       </div>
       <div class="bp-body">
         <div class="bp-copy-preview">${escapeHtml(card.content.slice(0, 200))}${card.content.length > 200 ? '…' : ''}</div>
+        ${profilesHtml}
         ${hasMedia ? `
         <div class="bp-section-label">Media &middot; ${card.mediaUrls.length} file${card.mediaUrls.length !== 1 ? 's' : ''}</div>
         <div class="bp-media-list">
@@ -1174,8 +1190,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
             return `<div class="bp-media-row">
               ${isVideo
                 ? `<div class="bp-media-icon">${svgIcon('send')}</div>`
-                : `<img class="bp-media-thumb" src="${escapeHtml(url)}" alt="" loading="lazy" />`
-              }
+                : `<img class="bp-media-thumb" src="${escapeHtml(url)}" alt="" loading="lazy" />`}
               <span class="bp-media-url" title="${escapeHtml(url)}">${escapeHtml(short)}</span>
               <button class="btn bp-copy-btn" data-url="${escapeHtml(url)}" data-idx="${i}">Copy URL</button>
             </div>`;
@@ -1191,10 +1206,16 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
           <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
           Meta Business Suite
         </button>` : ''}
-        <a class="btn btn-primary" href="${escapeHtml(bufferUrl)}" target="_blank" rel="noopener" id="bp-open">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Open Buffer
-        </a>
+        ${apiMode
+          ? `<button class="btn btn-primary" id="bp-api-push">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+              Add to Queue
+            </button>`
+          : `<a class="btn btn-primary" href="${escapeHtml(fallbackUrl)}" target="_blank" rel="noopener" id="bp-open">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open Buffer
+            </a>`
+        }
       </div>
     `;
 
@@ -1222,22 +1243,52 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       });
     });
 
+    // API push button
+    const apiBtn = $('#bp-api-push');
+    if (apiBtn) {
+      apiBtn.addEventListener('click', async () => {
+        const selected = [...panel.querySelectorAll('.bp-profile-check:checked')].map(cb => cb.value);
+        if (!selected.length) { Toast.show('Select at least one channel', 'warn'); return; }
+        apiBtn.disabled = true; apiBtn.textContent = 'Pushing…';
+        try {
+          await BufferAPI.createUpdate(State.settings.bufferToken, selected, card.content);
+          App._markPublished(card, 'Buffer');
+          Toast.show('Added to Buffer queue', 'success');
+          App.closeBufferPush();
+        } catch (err) {
+          // CORS or network error → fall back to intent URL tab
+          if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+            window.open(fallbackUrl, '_blank', 'noopener');
+            Toast.show('API blocked by browser — opened Buffer tab instead', 'warn');
+            App.closeBufferPush();
+          } else {
+            Toast.show('Buffer error: ' + err.message, 'error');
+            apiBtn.disabled = false; apiBtn.textContent = 'Add to Queue';
+          }
+        }
+      });
+    }
+
     const markBtn = $('#bp-mark-published');
     if (markBtn) {
       markBtn.addEventListener('click', () => {
-        const c = State.cards.find(x => x.id === card.id);
-        if (!c) return;
-        c.status = 'published';
-        c.publishedAt = new Date().toISOString();
-        State.pushActivity(`Published "<span class="em">${escapeHtml(c.title)}</span>" via Buffer`, 'send');
-        State.save();
-        DB.saveCard(c).catch(devWarn);
+        App._markPublished(card, 'Buffer');
         App.closeBufferPush();
-        App.renderKanban();
-        App.renderDashboard();
         Toast.show('Published!', 'success');
       });
     }
+  },
+
+  _markPublished(card, via) {
+    const c = State.cards.find(x => x.id === card.id);
+    if (!c) return;
+    c.status = 'published';
+    c.publishedAt = new Date().toISOString();
+    State.pushActivity(`Published "<span class="em">${escapeHtml(c.title)}</span>" via ${via}`, 'send');
+    State.save();
+    DB.saveCard(c).catch(devWarn);
+    App.renderKanban();
+    App.renderDashboard();
   },
 
   closeBufferPush() {
@@ -1615,7 +1666,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   bindIntegrations() {
     $('#set-meta-page').value = State.settings.metaPageId || '';
     $('#set-meta-token').value = State.settings.metaToken || '';
-    $('#set-buffer-profile').value = State.settings.bufferProfileId || '';
+    App._renderBufferSettings();
     $('#set-cloud-name').value = State.settings.cloudinaryCloud || '';
     $('#set-cloud-preset').value = State.settings.cloudinaryPreset || '';
     $('#meta-form').addEventListener('submit', (e) => {
@@ -1626,16 +1677,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       App.renderIntegrationStatus();
       Toast.show('Meta keys saved (stored locally)', 'success');
     });
-    $('#buffer-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const raw = $('#set-buffer-profile').value.trim();
-      // Accept full URL (https://publish.buffer.com/profile/ID/queue) or bare ID
-      const match = raw.match(/\/profile\/([^/?#]+)/);
-      State.settings.bufferProfileId = match ? match[1] : raw;
-      State.save();
-      App.renderIntegrationStatus();
-      Toast.show('Buffer profile saved', 'success');
-    });
+
     $('#cloudinary-form').addEventListener('submit', (e) => {
       e.preventDefault();
       State.settings.cloudinaryCloud  = $('#set-cloud-name').value.trim();
@@ -1646,17 +1688,69 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     });
   },
 
+  _renderBufferSettings() {
+    const connected = !!State.settings.bufferToken;
+    $('#buffer-form').style.display      = connected ? 'none' : 'block';
+    $('#buffer-connected').style.display = connected ? 'block' : 'none';
+
+    // Always wire the form with onsubmit (replaces any previous handler)
+    $('#buffer-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const token = $('#set-buffer-token').value.trim();
+      if (!token) return;
+      const btn = $('#buffer-connect-btn');
+      btn.disabled = true; btn.textContent = 'Connecting…';
+      try {
+        const profiles = await BufferAPI.fetchProfiles(token);
+        State.settings.bufferToken    = token;
+        State.settings.bufferProfiles = profiles.map(p => ({
+          id: p.id, service: p.service,
+          formatted_service: p.formatted_service,
+          username: p.formatted_username || p.username || '',
+        }));
+        State.save();
+        App._renderBufferSettings();
+        App.renderIntegrationStatus();
+        Toast.show(`Buffer connected — ${profiles.length} channel${profiles.length !== 1 ? 's' : ''}`, 'success');
+      } catch (err) {
+        Toast.show('Could not connect: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Connect Buffer';
+      }
+    };
+
+    if (!connected) return;
+
+    const list = $('#buffer-profiles-list');
+    const profiles = State.settings.bufferProfiles || [];
+    list.innerHTML = profiles.map(p => `
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text);">
+        <span style="width:8px; height:8px; border-radius:50%; background:var(--good); flex-shrink:0;"></span>
+        <span style="flex:1;">${escapeHtml(p.formatted_service || p.service)} — <span style="color:var(--text-faint);">${escapeHtml(p.username || p.id)}</span></span>
+      </div>`).join('') || '<span style="font-size:12px;color:var(--text-faint);">No channels found.</span>';
+
+    $('#buffer-disconnect').onclick = () => {
+      State.settings.bufferToken    = '';
+      State.settings.bufferProfiles = [];
+      State.save();
+      App._renderBufferSettings();
+      App.renderIntegrationStatus();
+      Toast.show('Buffer disconnected', 'info');
+    };
+  },
+
   renderIntegrationStatus() {
     const metaConnected       = State.settings.metaToken && State.settings.metaPageId;
     const supaConnected       = !!window.BluvideoSupabase?.supabase;
-    const bufferConfigured    = !!State.settings.bufferProfileId;
+    const bufferConnected     = !!(State.settings.bufferToken && (State.settings.bufferProfiles || []).length);
     const cloudinaryConnected = State.settings.cloudinaryCloud && State.settings.cloudinaryPreset;
     const gcalConnected       = !!(State.settings.gcalCalendarId && State.settings.gcalToken);
     $('#meta-status').classList.toggle('connected', !!metaConnected);
     $('#meta-status').textContent = metaConnected ? 'Connected' : 'Disconnected';
     if ($('#buffer-status')) {
-      $('#buffer-status').classList.toggle('connected', bufferConfigured);
-      $('#buffer-status').textContent = bufferConfigured ? `Profile · ${State.settings.bufferProfileId.slice(0, 8)}…` : 'Not configured';
+      const count = (State.settings.bufferProfiles || []).length;
+      $('#buffer-status').classList.toggle('connected', bufferConnected);
+      $('#buffer-status').textContent = bufferConnected ? `Connected · ${count} channel${count !== 1 ? 's' : ''}` : 'Not connected';
     }
     $('#cloudinary-status').classList.toggle('connected', !!cloudinaryConnected);
     $('#cloudinary-status').textContent = cloudinaryConnected ? 'Connected' : 'Disconnected';
@@ -2499,6 +2593,45 @@ function drawLineChart(svg, values, labels) {
 
   svg.innerHTML = grid + `<path class="area" d="${area}"/><path class="line" d="${path}"/>` + dots + xlabels;
 }
+
+/* -----------------------------------------------------------
+   BUFFER API
+   ----------------------------------------------------------- */
+const BufferAPI = {
+  BASE: 'https://api.bufferapp.com/1',
+
+  async fetchProfiles(token) {
+    const res = await fetch(`${this.BASE}/profiles.json?access_token=${encodeURIComponent(token)}`);
+    if (!res.ok) throw new Error(`Buffer API ${res.status}`);
+    return res.json();
+  },
+
+  // Adds post to the Buffer queue (now=false = next available slot).
+  async createUpdate(token, profileIds, text) {
+    const params = new URLSearchParams({ access_token: token, text });
+    profileIds.forEach(id => params.append('profile_ids[]', id));
+    const res = await fetch(`${this.BASE}/updates/create.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Buffer API ${res.status}`);
+    }
+    return res.json();
+  },
+
+  // Match a card platform string to the Buffer service name for pre-selection.
+  platformToService(platform) {
+    const p = (platform || '').toLowerCase();
+    if (p.includes('linkedin'))  return 'linkedin';
+    if (p.includes('instagram')) return 'instagram';
+    if (p.includes('facebook'))  return 'facebook';
+    if (p.includes('x') || p.includes('twitter')) return 'twitter';
+    return null;
+  },
+};
 
 /* -----------------------------------------------------------
    BOOT

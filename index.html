@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
 <title>BluVideo OS — Content & Marketing Workspace</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M6 4l12 8-12 8V4z' fill='%234d8fd9'/></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -13,6 +15,8 @@
 <script type="module" src="/src/lib/supabase.js"></script>
 <!-- Cloudinary Upload Widget -->
 <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
+<!-- Google Identity Services (for Google Calendar OAuth) -->
+<script src="https://accounts.google.com/gsi/client" async></script>
 <link rel="stylesheet" href="bluvideo.css">
 </head>
 <body>
@@ -139,7 +143,7 @@
         <div class="view-head">
           <div class="view-title-block">
             <div class="view-eyebrow">Today · <span id="dash-today"></span></div>
-            <h1 class="view-title">Good morning, <span class="display-em">Bluveo.</span></h1>
+            <h2 class="view-title">Good morning, <span class="display-em">Bluveo.</span></h2>
             <div class="view-sub">Here's what's on the table this week.</div>
           </div>
           <div style="display:flex; gap:8px;">
@@ -183,7 +187,7 @@
         <div class="view-head">
           <div class="view-title-block">
             <div class="view-eyebrow">Briefing Engine</div>
-            <h1 class="view-title">Compose a <span class="display-em">brief.</span></h1>
+            <h2 class="view-title">Compose a <span class="display-em">brief.</span></h2>
             <div class="view-sub">Fill the form on the left — the right side updates live. Copy as a Claude prompt when you're ready.</div>
           </div>
           <div style="display:flex; gap:8px;">
@@ -264,6 +268,27 @@
             <button class="btn btn-primary" id="mp-send-claude">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
               Send to Claude
+            </button>
+          </div>
+        </div>
+
+        <!-- Import Claude JSON → Cards -->
+        <div class="card" id="mp-import-card" style="margin-bottom:18px;">
+          <div class="card-head">
+            <div class="card-title">Import Claude output &rarr; cards</div>
+            <span class="chip" data-tone="purple"><span class="chip-dot"></span>Auto-create</span>
+          </div>
+          <div class="card-body">
+            <div class="field">
+              <label class="label" for="mp-import-json">Paste Claude JSON response <span class="hint">[{ "platform", "copy", "visual_prompt", "day" }]</span></label>
+              <textarea class="textarea" id="mp-import-json" placeholder='[{"platform":"LinkedIn","copy":"Your post copy...","visual_prompt":"...","day":"Monday"}]' style="min-height:100px; font-family: var(--mono); font-size:12px;"></textarea>
+            </div>
+          </div>
+          <div class="preview-actions" style="padding:12px 20px 16px; border-top: 1px solid var(--border); display:flex; align-items:center; gap:10px;">
+            <span id="mp-import-preview" style="font-size:12px; color:var(--text-muted); flex:1;"></span>
+            <button class="btn btn-primary" id="mp-import-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
+              Import to Kanban
             </button>
           </div>
         </div>
@@ -364,7 +389,7 @@
         <div class="view-head">
           <div class="view-title-block">
             <div class="view-eyebrow">Pipeline</div>
-            <h1 class="view-title">Kanban <span class="display-em">board</span></h1>
+            <h2 class="view-title">Kanban <span class="display-em">board</span></h2>
             <div class="view-sub">Drag cards across stages. Hit <span class="chip" data-tone="gray"><span class="chip-dot"></span>N</span> to add a new task instantly.</div>
           </div>
           <div style="display:flex; gap:8px;">
@@ -413,7 +438,7 @@
         <div class="view-head">
           <div class="view-title-block">
             <div class="view-eyebrow">Content stack</div>
-            <h1 class="view-title">Create <span class="display-em">anything.</span></h1>
+            <h2 class="view-title">Create <span class="display-em">anything.</span></h2>
             <div class="view-sub">Free tools for video, images, and copy &mdash; your full content creation stack.</div>
           </div>
           <div style="display:flex; gap:8px;">
@@ -427,26 +452,29 @@
         <div class="card workflow-card">
           <div class="card-head" style="padding: 0 0 14px; border: none;">
             <div class="card-title">Content workflow</div>
-            <span class="chip" data-tone="blue"><span class="chip-dot"></span>6 steps</span>
+            <span class="chip" data-tone="blue"><span class="chip-dot"></span>7 steps</span>
           </div>
           <div class="workflow-steps">
             <div class="workflow-step" data-step-go="briefs">
-              <span class="num">1</span><span>Create a content brief in Briefs</span><span class="arrow">&rarr;</span>
+              <span class="num">1</span><span>Build monthly plan &amp; generate week prompt in <strong>Briefs</strong></span><span class="arrow">&rarr;</span>
             </div>
             <div class="workflow-step" data-step-claude="1">
-              <span class="num">2</span><span>Generate copy in Claude.ai using the brief</span><span class="arrow">&rarr;</span>
+              <span class="num">2</span><span>Paste prompt in <strong>Claude.ai</strong> &rarr; get JSON array back</span><span class="arrow">&rarr;</span>
             </div>
-            <div class="workflow-step" data-step-tool="canva">
-              <span class="num">3</span><span>Create visuals in Bloom / Canva / CapCut / Runway</span><span class="arrow">&rarr;</span>
+            <div class="workflow-step" data-step-go="briefs">
+              <span class="num">3</span><span>Paste JSON in <strong>Import Claude output &rarr; cards</strong> box in Briefs</span><span class="arrow">&rarr;</span>
+            </div>
+            <div class="workflow-step" data-step-go="kanban">
+              <span class="num">4</span><span>Open each card in <strong>Kanban</strong>, copy visual prompt &rarr; generate in Bloom</span><span class="arrow">&rarr;</span>
             </div>
             <div class="workflow-step" data-step-tool="imgur">
-              <span class="num">4</span><span>Upload/host the media, copy the URL</span><span class="arrow">&rarr;</span>
+              <span class="num">5</span><span>Upload Bloom image via Cloudinary &rarr; URL auto-attached to card</span><span class="arrow">&rarr;</span>
             </div>
             <div class="workflow-step" data-step-go="kanban">
-              <span class="num">5</span><span>Create post here, paste copy + media URL</span><span class="arrow">&rarr;</span>
+              <span class="num">6</span><span>Edit copy &rarr; move to <strong>Review &rarr; Approved</strong></span><span class="arrow">&rarr;</span>
             </div>
             <div class="workflow-step" data-step-go="kanban">
-              <span class="num">6</span><span>Approve &rarr; Schedule via Buffer</span><span class="arrow">&rarr;</span>
+              <span class="num">7</span><span>Schedule &rarr; push to <strong>Buffer</strong> or <strong>Meta Business Suite</strong></span><span class="arrow">&rarr;</span>
             </div>
           </div>
         </div>
@@ -481,7 +509,7 @@
         <div class="view-head">
           <div class="view-title-block">
             <div class="view-eyebrow">Schedule</div>
-            <h1 class="view-title">Calendar <span class="display-em">hub</span></h1>
+            <h2 class="view-title">Calendar <span class="display-em">hub</span></h2>
             <div class="view-sub">Drag any post between days to reschedule. Click a day to add a post for that date.</div>
           </div>
         </div>
@@ -510,7 +538,7 @@
         <div class="view-head">
           <div class="view-title-block">
             <div class="view-eyebrow">Analytics</div>
-            <h1 class="view-title">Performance <span class="display-em">graph</span></h1>
+            <h2 class="view-title">Performance <span class="display-em">graph</span></h2>
             <div class="view-sub">Sync via Meta Graph API, or log weekly metrics manually below.</div>
           </div>
           <div style="display:flex; gap:8px;">
@@ -599,9 +627,13 @@
         <div class="view-head">
           <div class="view-title-block">
             <div class="view-eyebrow">Account</div>
-            <h1 class="view-title">Integrations <span class="display-em">&amp; settings</span></h1>
+            <h2 class="view-title">Integrations <span class="display-em">&amp; settings</span></h2>
             <div class="view-sub">Keys stay in this browser unless Supabase is configured.</div>
           </div>
+        </div>
+
+        <div class="field" style="margin-bottom:18px; padding:12px 16px; background:color-mix(in oklab,var(--warn) 8%,transparent); border:1px solid color-mix(in oklab,var(--warn) 25%,transparent); border-radius:var(--radius); font-size:12.5px; color:var(--text-dim); line-height:1.6;">
+          <strong style="color:var(--warn);">&#9888; Keys stored locally.</strong> API tokens and keys are saved in this browser's localStorage in plain text. Do not use this profile on shared or public devices.
         </div>
 
         <div class="integrations-grid">
@@ -712,6 +744,47 @@
             </div>
             <div style="font-size: 12.5px; color: var(--text-faint); line-height: 1.6;">
               Copy-to-clipboard works out of the box. <strong style="color:var(--text-dim);">Send to Claude</strong> opens claude.ai with your brief prefilled.
+            </div>
+          </div>
+
+          <!-- Google Calendar -->
+          <div class="integration-card">
+            <div class="integration-head">
+              <div class="integration-logo" style="color: oklch(62% 0.18 25);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/><path d="M8 13h2v2H8z"/><path d="M11 13h2v2h-2z"/><path d="M14 13h2v2h-2z"/></svg>
+              </div>
+              <div class="integration-meta">
+                <h4>Google Calendar</h4>
+                <p>Auto-create events when posts are scheduled. Uses a separate Google account.</p>
+              </div>
+              <span class="integration-status" id="gcal-status">Disconnected</span>
+            </div>
+            <form id="gcal-form">
+              <div class="field">
+                <label class="label" for="set-gcal-client-id">
+                  Google OAuth Client ID
+                  <span class="hint">— from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" style="color:var(--info);">Google Cloud Console</a> · Calendar API must be enabled</span>
+                </label>
+                <input class="input" type="text" id="set-gcal-client-id" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" />
+              </div>
+              <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;" id="gcal-connect-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+                Connect Google Calendar
+              </button>
+            </form>
+            <div id="gcal-picker" style="display:none; margin-top:14px;">
+              <div class="field">
+                <label class="label" for="gcal-calendar-select">Select calendar to sync to</label>
+                <select class="select" id="gcal-calendar-select"></select>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn" id="gcal-save-calendar" style="flex:1; justify-content:center;">Save calendar</button>
+                <button class="btn btn-danger-ghost" id="gcal-disconnect" style="flex:0 0 auto;">Disconnect</button>
+              </div>
+            </div>
+            <div id="gcal-connected-info" style="display:none; margin-top:12px; font-size:12.5px; color:var(--text-faint); line-height:1.6;">
+              Scheduled posts will automatically create events in your selected Google Calendar. You can re-connect at any time to change the calendar.
+              <div style="margin-top:8px;"><button class="btn btn-danger-ghost" id="gcal-disconnect-2" style="font-size:11px;">Disconnect</button></div>
             </div>
           </div>
 
@@ -830,6 +903,15 @@
         </button>
       </div>
 
+      <div class="section-label">Visual prompt <span style="color:var(--text-faint); font-family:var(--font-sans); text-transform:none; letter-spacing:0; font-weight:400;">— for Bloom image generation</span></div>
+      <div style="position:relative;">
+        <textarea class="textarea" id="c-visual-prompt" placeholder="A clean, modern composition showing…" style="min-height:72px; padding-right:166px;"></textarea>
+        <button type="button" class="btn" id="c-bloom-btn" style="position:absolute; bottom:8px; right:8px; font-size:11px; padding:4px 10px; gap:5px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Copy &amp; open Bloom
+        </button>
+      </div>
+
       <div class="section-label">Final copy <span style="color:var(--text-faint); font-family:var(--font-sans); text-transform:none; letter-spacing:0; font-weight:400;">— paste approved post body here for Buffer push</span></div>
       <textarea class="textarea" id="c-content" placeholder="Paste the final approved copy here…" style="min-height: 120px;"></textarea>
     </div>
@@ -886,8 +968,8 @@
   </div>
 </div>
 
-<!-- Toast stack -->
-<div class="toast-stack" id="toast-stack"></div>
+<!-- Toast stack — aria-live announces toasts to screen readers -->
+<div class="toast-stack" id="toast-stack" role="status" aria-live="polite" aria-atomic="false"></div>
 <textarea id="clipboard-helper" style="position:absolute; left:-9999px;" tabindex="-1" aria-hidden="true"></textarea>
 
 <script src="bluvideo.js"></script>

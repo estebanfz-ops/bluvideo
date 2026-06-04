@@ -4,6 +4,9 @@
 (function() {
 'use strict';
 
+/* Enable verbose logging: localStorage.setItem('bluVideoOS_debug','true') */
+const devWarn = (...a) => { if (localStorage.getItem('bluVideoOS_debug') === 'true') console.warn(...a); };
+
 const STORAGE_KEY = 'bluVideoOS_v2';
 
 const STATUSES = [
@@ -42,7 +45,7 @@ const State = {
   cards: [],
   metrics: [],
   activity: [],
-  settings: { metaPageId: '', metaToken: '', supaUrl: '', supaKey: '', lastMetaSync: null, cloudinaryCloud: '', cloudinaryPreset: '' },
+  settings: { metaPageId: '', metaToken: '', supaUrl: '', supaKey: '', lastMetaSync: null, cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
 
   load() {
     try {
@@ -55,7 +58,7 @@ const State = {
         this.save();
       }
     } catch (e) {
-      console.warn('State load failed', e);
+      devWarn('State load failed', e);
       seed(this);
     }
   },
@@ -65,7 +68,7 @@ const State = {
         briefs: this.briefs, monthlyPlans: this.monthlyPlans, cards: this.cards,
         metrics: this.metrics, activity: this.activity, settings: this.settings
       }));
-    } catch (e) { console.warn('save failed', e); }
+    } catch (e) { devWarn('save failed', e); }
   },
   pushActivity(text, icon) {
     this.activity.unshift({ id: 'a_' + Date.now() + Math.random().toString(36).slice(2,5), text, icon, at: Date.now() });
@@ -220,6 +223,27 @@ const Toast = {
 };
 
 /* -----------------------------------------------------------
+   FOCUS TRAP — WCAG 2.1 modal accessibility
+   ----------------------------------------------------------- */
+function trapFocus(container) {
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  function getFocusable() { return Array.from(container.querySelectorAll(FOCUSABLE)).filter(el => !el.closest('[hidden]') && el.offsetParent !== null); }
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    const els = getFocusable();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  container.addEventListener('keydown', handler);
+  return { release: () => container.removeEventListener('keydown', handler) };
+}
+
+/* -----------------------------------------------------------
    CLOUDINARY UPLOAD HELPER
    ----------------------------------------------------------- */
 const Cloudinary = {
@@ -345,7 +369,7 @@ const DB = {
 
       State.save(); // cache locally
     } catch (err) {
-      console.warn('[DB] loadAll failed:', err);
+      devWarn('[DB] loadAll failed:', err);
     }
   },
 
@@ -463,6 +487,7 @@ const App = {
   currentView: 'dashboard',
   cardEditingId: null,
   currentUser: null,
+  _focusTrap: null,
 
   async init() {
     // Auth gate: show login screen until session confirmed
@@ -482,6 +507,7 @@ const App = {
     this.bindCalendarNav();
     this.bindAnalytics();
     this.bindIntegrations();
+    this.bindGoogleCalendar();
     this.applyTheme(localStorage.getItem('bluVideoOS_theme') || 'dark');
     this.renderAll();
     this.switchView('dashboard');
@@ -517,7 +543,7 @@ const App = {
     const supa = window.BluvideoSupabase;
     if (!supa) {
       // Supabase not available — fall back to localStorage-only mode
-      console.warn('[BluVideo] Supabase not available, running in local mode');
+      devWarn('[BluVideo] Supabase not available, running in local mode');
       this.hideAuthScreen();
       return;
     }
@@ -623,6 +649,7 @@ const App = {
       if (e.key === 'Escape') {
         if ($('#palette-scrim').classList.contains('open')) Palette.close();
         else if ($('#buffer-push-scrim').classList.contains('open')) App.closeBufferPush();
+        else if ($('#schedule-scrim').classList.contains('open')) App.closeScheduleModal();
         else if ($('#card-scrim').classList.contains('open')) App.closeCardModal();
         return;
       }
@@ -691,7 +718,7 @@ const App = {
         State.cards.unshift(card);
         State.pushActivity(`Quick-added "<span class="em">${escapeHtml(card.title)}</span>" to Ideation`, 'plus');
         State.save();
-        DB.saveCard(card).catch(console.warn);
+        DB.saveCard(card).catch(devWarn);
         qa.value = '';
         App.renderDashboard();
         App.renderKanban();
@@ -885,7 +912,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     State.briefs.unshift(brief);
     State.pushActivity(`Saved brief "<span class="em">${escapeHtml(v.title)}</span>"`, 'doc');
     State.save();
-    DB.saveBrief(brief).catch(console.warn);
+    DB.saveBrief(brief).catch(devWarn);
     App.renderBriefList();
     App.renderDashboard();
     Toast.show('Brief saved to library', 'success');
@@ -1012,11 +1039,36 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       `;
     }).join('');
 
-    // Bind card clicks
+    // Bind card clicks + keyboard move (Shift+← / Shift+→)
     board.querySelectorAll('.kard').forEach(el => {
       el.addEventListener('click', (e) => {
         if (e.target.closest('a, button')) return;
         App.openCardModal(el.dataset.id);
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); App.openCardModal(el.dataset.id); return; }
+        if (!e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+        e.preventDefault();
+        const c = State.cards.find(x => x.id === el.dataset.id);
+        if (!c) return;
+        const idx = STATUSES.findIndex(s => s.id === c.status);
+        const newIdx = e.key === 'ArrowLeft' ? idx - 1 : idx + 1;
+        if (newIdx < 0 || newIdx >= STATUSES.length) return;
+        const prev = c.status;
+        c.status = STATUSES[newIdx].id;
+        State.pushActivity(`Moved "<span class="em">${escapeHtml(c.title)}</span>" → ${statusLabel(c.status)}`, 'arrow');
+        State.save();
+        DB.saveCard(c).catch(devWarn);
+        App.renderKanban();
+        App.renderDashboard();
+        Toast.show(`Moved to ${statusLabel(c.status)}`, 'info', {
+          label: 'Undo',
+          handler: () => { c.status = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderKanban(); App.renderDashboard(); }
+        });
+        setTimeout(() => {
+          const next = board.querySelector(`.kard[data-id="${el.dataset.id}"]`);
+          if (next) next.focus();
+        }, 50);
       });
     });
 
@@ -1032,7 +1084,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
           State.cards.unshift(card);
           State.pushActivity(`Added "<span class="em">${escapeHtml(card.title)}</span>" to ${statusLabel(card.status)}`, 'plus');
           State.save();
-          DB.saveCard(card).catch(console.warn);
+          DB.saveCard(card).catch(devWarn);
           input.value = '';
           App.renderKanban();
           // refocus same column
@@ -1049,6 +1101,15 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   bindCardModal() {
     $('#card-scrim').addEventListener('click', (e) => { if (e.target === $('#card-scrim')) App.closeCardModal(); });
     $('#buffer-push-scrim').addEventListener('click', (e) => { if (e.target === $('#buffer-push-scrim')) App.closeBufferPush(); });
+
+    $('#c-bloom-btn').addEventListener('click', () => {
+      const prompt = $('#c-visual-prompt').value.trim();
+      if (!prompt) { Toast.show('Add a visual prompt first', 'warn'); return; }
+      copyText(prompt, () => {});
+      window.open('https://www.trybloom.ai/', '_blank', 'noopener');
+      Toast.show('Visual prompt copied — paste it in Bloom', 'info');
+    });
+
     $('#c-upload-btn').addEventListener('click', () => {
       Cloudinary.upload((url) => {
         App._mediaUrls = App._mediaUrls || [];
@@ -1069,23 +1130,26 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#c-date').value = card ? (card.date || '') : '';
     $('#c-figma').value = card ? (card.figma || '') : '';
     $('#c-canva').value = card ? (card.canva || '') : '';
+    $('#c-visual-prompt').value = card ? (card.visualPrompt || '') : '';
     $('#c-content').value = card ? (card.content || '') : '';
     App._mediaUrls = card ? [...(card.mediaUrls || [])] : [];
     renderMediaThumbs(App._mediaUrls);
     $('#c-delete').style.display = card ? 'inline-flex' : 'none';
     $('#c-meta').textContent = card ? `Created ${fmtRelative(card.createdAt)}` : 'New task';
     $('#card-scrim').classList.add('open');
-    setTimeout(() => $('#c-title').focus(), 50);
+    setTimeout(() => { $('#c-title').focus(); App._focusTrap = trapFocus($('#card-modal')); }, 50);
   },
 
   closeCardModal() {
     $('#card-scrim').classList.remove('open');
     App.cardEditingId = null;
+    if (App._focusTrap) { App._focusTrap.release(); App._focusTrap = null; }
   },
 
   openBufferPush(card) {
     const hasMedia = card.mediaUrls && card.mediaUrls.length > 0;
     const bufferUrl = `https://buffer.com/add?text=${encodeURIComponent(card.content)}`;
+    const isMeta = /instagram|facebook/i.test(card.platform || '');
     const panel = $('#buffer-push-panel');
 
     panel.innerHTML = `
@@ -1122,6 +1186,10 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       <div class="bp-foot">
         <button class="btn" id="bp-cancel">Cancel</button>
         ${card.status === 'scheduled' ? `<button class="btn bp-mark-published-btn" id="bp-mark-published">Mark as Published</button>` : ''}
+        ${isMeta ? `<button class="btn brand-meta" id="bp-meta">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
+          Meta Business Suite
+        </button>` : ''}
         <a class="btn btn-primary" href="${escapeHtml(bufferUrl)}" target="_blank" rel="noopener" id="bp-open">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Open Buffer
@@ -1130,9 +1198,20 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     `;
 
     $('#buffer-push-scrim').classList.add('open');
+    setTimeout(() => { App._focusTrap = trapFocus($('#buffer-push-panel')); }, 50);
 
     $('#bp-close').addEventListener('click', () => App.closeBufferPush());
     $('#bp-cancel').addEventListener('click', () => App.closeBufferPush());
+
+    const metaBtn = $('#bp-meta');
+    if (metaBtn) {
+      metaBtn.addEventListener('click', () => {
+        copyText(card.content, () => {});
+        window.open('https://business.facebook.com/latest/composer/', '_blank', 'noopener');
+        Toast.show('Copy pasted to clipboard — paste in Meta composer', 'info');
+      });
+    }
+
     panel.querySelectorAll('.bp-copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         copyText(btn.dataset.url, () => {
@@ -1151,7 +1230,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
         c.publishedAt = new Date().toISOString();
         State.pushActivity(`Published "<span class="em">${escapeHtml(c.title)}</span>" via Buffer`, 'send');
         State.save();
-        DB.saveCard(c).catch(console.warn);
+        DB.saveCard(c).catch(devWarn);
         App.closeBufferPush();
         App.renderKanban();
         App.renderDashboard();
@@ -1162,6 +1241,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
 
   closeBufferPush() {
     $('#buffer-push-scrim').classList.remove('open');
+    if (App._focusTrap) { App._focusTrap.release(); App._focusTrap = null; }
   },
 
   /* -------- SCHEDULE MODAL -------- */
@@ -1178,11 +1258,13 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     def.setHours(9, 0, 0, 0);
     $('#schedule-datetime').value = def.toISOString().slice(0, 16);
     $('#schedule-scrim').classList.add('open');
+    setTimeout(() => { $('#schedule-datetime').focus(); App._focusTrap = trapFocus($('.schedule-modal')); }, 50);
   },
 
   closeScheduleModal() {
     $('#schedule-scrim').classList.remove('open');
     this._schedulingId = null;
+    if (App._focusTrap) { App._focusTrap.release(); App._focusTrap = null; }
   },
 
   confirmSchedule(publishNow) {
@@ -1206,7 +1288,8 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       'clock'
     );
     State.save();
-    DB.saveCard(c).catch(console.warn);
+    DB.saveCard(c).catch(devWarn);
+    if (State.settings.gcalCalendarId && State.settings.gcalToken) GCal.createEvent(c);
     this.closeScheduleModal();
     this.renderKanban();
     this.renderDashboard();
@@ -1263,6 +1346,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       figma: $('#c-figma').value,
       canva: $('#c-canva').value,
       content: $('#c-content').value,
+      visualPrompt: $('#c-visual-prompt').value.trim(),
       mediaUrls: App._mediaUrls || [],
     };
     if (App.cardEditingId) {
@@ -1272,13 +1356,13 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
         State.cards[i] = { ...State.cards[i], ...data };
         if (prevStatus !== data.status) State.pushActivity(`Moved "<span class="em">${escapeHtml(title)}</span>" to ${statusLabel(data.status)}`, 'arrow');
         else State.pushActivity(`Updated "<span class="em">${escapeHtml(title)}</span>"`, 'edit');
-        DB.saveCard(State.cards[i]).catch(console.warn);
+        DB.saveCard(State.cards[i]).catch(devWarn);
       }
     } else {
       const newCard = { id: uid('c_'), ...data, createdAt: Date.now() };
       State.cards.unshift(newCard);
       State.pushActivity(`Created "<span class="em">${escapeHtml(title)}</span>"`, 'plus');
-      DB.saveCard(newCard).catch(console.warn);
+      DB.saveCard(newCard).catch(devWarn);
     }
     State.save();
     App.renderKanban();
@@ -1295,7 +1379,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     const removed = State.cards.splice(i, 1)[0];
     State.pushActivity(`Deleted "<span class="em">${escapeHtml(removed.title)}</span>"`, 'trash');
     State.save();
-    DB.deleteCard(removed).catch(console.warn);
+    DB.deleteCard(removed).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
     App.renderCalendar();
@@ -1343,11 +1427,20 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
         <div class="cal-day ${inMonth ? '' : 'other'} ${isToday ? 'today' : ''}" data-iso="${iso}">
           <div class="d-num">${dayNum > 0 && dayNum <= daysInMonth ? dayNum : (new Date(year, month, dayNum).getDate())}</div>
           <div class="cal-day-events">
-            ${events.map(c => `
-              <div class="cal-event" draggable="true" data-card-id="${c.id}" data-platform="${c.platform}">
+            ${events.map(c => {
+              const isPublishable = c.status === 'approved' || c.status === 'scheduled';
+              const isMeta = /instagram|facebook/i.test(c.platform || '');
+              const actions = isPublishable && c.content ? `
+                <div class="cal-event-actions" onclick="event.stopPropagation()">
+                  <button class="cal-pub-btn" data-cal-buffer="${c.id}" title="Push to Buffer">B</button>
+                  ${isMeta ? `<button class="cal-pub-btn cal-pub-meta" data-cal-meta="${c.id}" title="Meta Business Suite">M</button>` : ''}
+                </div>` : '';
+              return `
+              <div class="cal-event" draggable="true" data-card-id="${c.id}" data-platform="${c.platform}" data-status="${c.status}">
                 <span class="e-title">${escapeHtml(c.title)}</span>
-              </div>
-            `).join('')}
+                ${actions}
+              </div>`;
+            }).join('')}
             ${overflow > 0 ? `<div class="cal-more">+${overflow} more</div>` : ''}
           </div>
         </div>
@@ -1366,9 +1459,32 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       });
     });
 
-    // Click event → edit
+    // Click event → edit (skip if action button)
     grid.querySelectorAll('.cal-event').forEach(ev => {
-      ev.addEventListener('click', (e) => { e.stopPropagation(); App.openCardModal(ev.dataset.cardId); });
+      ev.addEventListener('click', (e) => {
+        if (e.target.closest('.cal-event-actions')) return;
+        e.stopPropagation();
+        App.openCardModal(ev.dataset.cardId);
+      });
+    });
+
+    // Calendar publish buttons
+    grid.querySelectorAll('[data-cal-buffer]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const c = State.cards.find(x => x.id === btn.dataset.calBuffer);
+        if (c) App.openBufferPush(c);
+      });
+    });
+    grid.querySelectorAll('[data-cal-meta]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const c = State.cards.find(x => x.id === btn.dataset.calMeta);
+        if (!c) return;
+        copyText(c.content, () => {});
+        window.open('https://business.facebook.com/latest/composer/', '_blank', 'noopener');
+        Toast.show('Copy pasted to clipboard — paste in Meta composer', 'info');
+      });
     });
 
     setupCalendarDnd();
@@ -1488,7 +1604,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     State.metrics.push(metric);
     State.metrics.sort((a, b) => a.date.localeCompare(b.date));
     State.save();
-    DB.saveAnalytic(metric).catch(console.warn);
+    DB.saveAnalytic(metric).catch(devWarn);
     App.renderAnalytics();
     $('#m-date').value = $('#m-reach').value = $('#m-engage').value = $('#m-followers').value = '';
     Toast.show('Snapshot logged to Supabase', 'success');
@@ -1532,6 +1648,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     const metaConnected       = State.settings.metaToken && State.settings.metaPageId;
     const supaConnected       = State.settings.supaUrl && State.settings.supaKey;
     const cloudinaryConnected = State.settings.cloudinaryCloud && State.settings.cloudinaryPreset;
+    const gcalConnected       = !!(State.settings.gcalCalendarId && State.settings.gcalToken);
     $('#meta-status').classList.toggle('connected', !!metaConnected);
     $('#meta-status').textContent = metaConnected ? 'Connected' : 'Disconnected';
     $('#supa-status').classList.toggle('connected', !!supaConnected);
@@ -1539,6 +1656,53 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#cloudinary-status').classList.toggle('connected', !!cloudinaryConnected);
     $('#cloudinary-status').textContent = cloudinaryConnected ? 'Connected' : 'Disconnected';
     $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';
+    if ($('#gcal-status')) {
+      $('#gcal-status').classList.toggle('connected', gcalConnected);
+      $('#gcal-status').textContent = gcalConnected ? `Connected · ${State.settings.gcalCalendarName || 'calendar'}` : 'Disconnected';
+      $('#gcal-connected-info').style.display = gcalConnected ? 'block' : 'none';
+      $('#gcal-form').style.display = gcalConnected ? 'none' : 'block';
+    }
+  },
+
+  /* -------- GOOGLE CALENDAR -------- */
+  _gcalTokenClient: null,
+
+  bindGoogleCalendar() {
+    $('#set-gcal-client-id').value = State.settings.gcalClientId || '';
+
+    $('#gcal-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const clientId = $('#set-gcal-client-id').value.trim();
+      if (!clientId) { Toast.show('Paste your Google OAuth Client ID first', 'warn'); return; }
+      State.settings.gcalClientId = clientId;
+      State.save();
+      GCal.connect(clientId);
+    });
+
+    const disconnectFn = () => {
+      State.settings.gcalToken = '';
+      State.settings.gcalCalendarId = '';
+      State.settings.gcalCalendarName = '';
+      State.save();
+      App.renderIntegrationStatus();
+      $('#gcal-picker').style.display = 'none';
+      Toast.show('Google Calendar disconnected', 'info');
+    };
+    $('#gcal-disconnect').addEventListener('click', disconnectFn);
+    $('#gcal-disconnect-2').addEventListener('click', disconnectFn);
+
+    $('#gcal-save-calendar').addEventListener('click', () => {
+      const sel = $('#gcal-calendar-select');
+      if (!sel.value) return;
+      State.settings.gcalCalendarId = sel.value;
+      State.settings.gcalCalendarName = sel.options[sel.selectedIndex].text;
+      State.save();
+      $('#gcal-picker').style.display = 'none';
+      App.renderIntegrationStatus();
+      Toast.show(`Calendar "${State.settings.gcalCalendarName}" saved`, 'success');
+    });
+
+    App.renderIntegrationStatus();
   },
 
   /* -------- MONTHLY PLANNER -------- */
@@ -1556,6 +1720,77 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
         setTimeout(() => window.open('https://claude.ai/new', '_blank', 'noopener'), 250);
       });
     });
+    $('#mp-import-json').addEventListener('input', () => App.previewImportJson());
+    $('#mp-import-btn').addEventListener('click', () => App.importClaudeJson());
+  },
+
+  previewImportJson() {
+    const raw = $('#mp-import-json').value.trim();
+    const el = $('#mp-import-preview');
+    if (!raw) { el.textContent = ''; return; }
+    try {
+      const items = JSON.parse(raw);
+      if (!Array.isArray(items)) { el.textContent = 'Expected a JSON array'; return; }
+      el.textContent = `${items.length} post${items.length !== 1 ? 's' : ''} detected`;
+    } catch {
+      el.textContent = 'Invalid JSON';
+    }
+  },
+
+  importClaudeJson() {
+    const raw = $('#mp-import-json').value.trim();
+    if (!raw) { Toast.show('Paste a JSON array first', 'warn'); return; }
+    let items;
+    try {
+      items = JSON.parse(raw);
+      if (!Array.isArray(items)) throw new Error('not an array');
+    } catch {
+      Toast.show('Invalid JSON — expected an array of objects', 'error'); return;
+    }
+
+    const today = new Date();
+    const DAY_MAP = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+    const dayOffset = (dayName) => {
+      const target = DAY_MAP[(dayName || '').toLowerCase()];
+      if (target === undefined) return 0;
+      const curr = today.getDay();
+      let diff = target - curr;
+      if (diff <= 0) diff += 7;
+      return diff;
+    };
+
+    let created = 0;
+    items.forEach(item => {
+      if (!item.copy && !item.platform) return;
+      const postDate = new Date(today);
+      postDate.setDate(today.getDate() + dayOffset(item.day));
+      const copy = (item.copy || '').trim();
+      const card = {
+        id: uid('c_'),
+        title: copy.slice(0, 60) + (copy.length > 60 ? '…' : ''),
+        status: 'drafting',
+        platform: item.platform || 'LinkedIn',
+        content: copy,
+        date: postDate.toISOString().slice(0, 10),
+        assignee: 'Member 1',
+        figma: '',
+        canva: '',
+        visualPrompt: item.visual_prompt || '',
+        createdAt: Date.now(),
+      };
+      State.cards.unshift(card);
+      DB.saveCard(card).catch(devWarn);
+      created++;
+    });
+
+    if (created === 0) { Toast.show('No valid items found in JSON', 'warn'); return; }
+    State.pushActivity(`Imported ${created} card${created !== 1 ? 's' : ''} from Claude output`, 'pen');
+    State.save();
+    App.renderKanban();
+    App.renderDashboard();
+    $('#mp-import-json').value = '';
+    $('#mp-import-preview').textContent = '';
+    Toast.show(`${created} card${created !== 1 ? 's' : ''} added to Kanban → Drafting`, 'success', { label: 'Go to Kanban', handler: () => App.switchView('kanban') });
   },
 
   monthlyPlanValues() {
@@ -1576,11 +1811,11 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     const existing = State.monthlyPlans.findIndex(p => p.monthYear === v.monthYear);
     if (existing > -1) {
       Object.assign(State.monthlyPlans[existing], v);
-      DB.saveMonthlyPlan(State.monthlyPlans[existing]).catch(console.warn);
+      DB.saveMonthlyPlan(State.monthlyPlans[existing]).catch(devWarn);
     } else {
       const plan = { id: uid('mp_'), ...v, createdAt: Date.now() };
       State.monthlyPlans.unshift(plan);
-      DB.saveMonthlyPlan(plan).catch(console.warn);
+      DB.saveMonthlyPlan(plan).catch(devWarn);
     }
     State.pushActivity(`Saved monthly plan for <span class="em">${v.monthYear}</span>`, 'doc');
     State.save();
@@ -1842,6 +2077,11 @@ Return a JSON array:
 function renderCard(c) {
   let action = '';
   let extra = '';
+  const isMeta = /instagram|facebook/i.test(c.platform || '');
+  const metaBtn = isMeta ? `<button class="btn brand-meta" data-meta="${c.id}">
+    <svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
+    Meta
+  </button>` : '';
 
   if (c.status === 'drafting' || c.status === 'ideation') {
     action = `<div class="kard-action">
@@ -1856,6 +2096,7 @@ function renderCard(c) {
     action = `<div class="kard-action">
       <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Schedule</button>
       <button class="btn brand-buffer" data-buffer="${c.id}">${svgIcon('send')} Buffer</button>
+      ${metaBtn}
     </div>`;
   } else if (c.status === 'scheduled') {
     const schFmt = c.scheduledFor ? fmtDatetime(c.scheduledFor) : (c.date ? fmtDate(c.date) : '');
@@ -1864,6 +2105,7 @@ function renderCard(c) {
     if (isDue) {
       action = `<div class="kard-action">
         <button class="btn kard-publish-btn" data-publish-buffer="${c.id}">${svgIcon('send')} Publish via Buffer</button>
+        ${metaBtn}
       </div>`;
     } else if (!c.scheduledFor) {
       action = `<div class="kard-action">
@@ -1882,8 +2124,13 @@ function renderCard(c) {
     if (pubFmt) extra = `<div class="kard-time-badge kard-published-time">${svgIcon('check')} ${pubFmt}</div>`;
   }
 
+  const statusIdx = STATUSES.findIndex(s => s.id === c.status);
+  const prevStatus = statusIdx > 0 ? STATUSES[statusIdx - 1].label : null;
+  const nextStatus = statusIdx < STATUSES.length - 1 ? STATUSES[statusIdx + 1].label : null;
+  const keyHint = [prevStatus && `Shift+← → ${prevStatus}`, nextStatus && `Shift+→ → ${nextStatus}`].filter(Boolean).join(' · ');
+
   return `
-    <div class="kard${c.status === 'failed' ? ' kard-failed' : ''}" draggable="true" data-id="${c.id}">
+    <div class="kard${c.status === 'failed' ? ' kard-failed' : ''}" draggable="true" tabindex="0" data-id="${c.id}" aria-label="${escapeHtml(c.title)} · ${escapeHtml(c.platform)} · ${statusLabel(c.status)}${keyHint ? ' · ' + keyHint : ''}">
       <div class="kard-head">
         <span class="platform-pill" data-platform="${c.platform}">${PLATFORM_ICONS[c.platform] || ''} ${c.platform}</span>
         ${c.date ? `<span class="kard-meta">${fmtDate(c.date)}</span>` : ''}
@@ -1936,10 +2183,10 @@ function setupKanbanDnd() {
         c.status = newStatus;
         State.pushActivity(`Moved "<span class="em">${escapeHtml(c.title)}</span>" → ${statusLabel(newStatus)}`, 'arrow');
         State.save();
-        DB.saveCard(c).catch(console.warn);
+        DB.saveCard(c).catch(devWarn);
         App.renderKanban();
         App.renderDashboard();
-        Toast.show(`Moved to ${statusLabel(newStatus)}`, 'info', { label: 'Undo', handler: () => { c.status = prev; State.save(); DB.saveCard(c).catch(console.warn); App.renderKanban(); App.renderDashboard(); } });
+        Toast.show(`Moved to ${statusLabel(newStatus)}`, 'info', { label: 'Undo', handler: () => { c.status = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderKanban(); App.renderDashboard(); } });
       }
     });
   });
@@ -1968,7 +2215,7 @@ function setupKanbanDnd() {
     c.status = 'review';
     State.pushActivity(`Sent "<span class="em">${escapeHtml(c.title)}</span>" to In Review`, 'eye');
     State.save();
-    DB.saveCard(c).catch(console.warn);
+    DB.saveCard(c).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
     Toast.show('Moved to In Review', 'info');
@@ -1981,7 +2228,7 @@ function setupKanbanDnd() {
     c.status = 'approved';
     State.pushActivity(`Approved "<span class="em">${escapeHtml(c.title)}</span>"`, 'check');
     State.save();
-    DB.saveCard(c).catch(console.warn);
+    DB.saveCard(c).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
     Toast.show('Post approved ✓', 'success');
@@ -2001,7 +2248,7 @@ function setupKanbanDnd() {
     c.scheduledFor = null;
     State.pushActivity(`Retrying "<span class="em">${escapeHtml(c.title)}</span>"`, 'retry');
     State.save();
-    DB.saveCard(c).catch(console.warn);
+    DB.saveCard(c).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
     Toast.show('Moved back to Approved — reschedule to retry', 'info');
@@ -2012,6 +2259,15 @@ function setupKanbanDnd() {
     const c = State.cards.find(x => x.id === b.dataset.publishBuffer);
     if (!c) return;
     App.openBufferPush(c);
+  }));
+
+  board.querySelectorAll('[data-meta]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const c = State.cards.find(x => x.id === b.dataset.meta);
+    if (!c || !c.content) { Toast.show('Add final copy on the card first', 'warn'); return; }
+    copyText(c.content, () => {});
+    window.open('https://business.facebook.com/latest/composer/', '_blank', 'noopener');
+    Toast.show('Copy pasted to clipboard — paste in Meta composer', 'info');
   }));
 }
 
@@ -2042,11 +2298,11 @@ function setupCalendarDnd() {
         if (c.status === 'ideation' || c.status === 'drafting') c.status = 'scheduled';
         State.pushActivity(`Rescheduled "<span class="em">${escapeHtml(c.title)}</span>" → ${fmtDate(iso)}`, 'clock');
         State.save();
-        DB.saveCard(c).catch(console.warn);
+        DB.saveCard(c).catch(devWarn);
         App.renderCalendar();
         App.renderKanban();
         App.renderDashboard();
-        Toast.show(`Rescheduled to ${fmtDate(iso)}`, 'success', { label: 'Undo', handler: () => { c.date = prev; State.save(); DB.saveCard(c).catch(console.warn); App.renderCalendar(); App.renderKanban(); App.renderDashboard(); } });
+        Toast.show(`Rescheduled to ${fmtDate(iso)}`, 'success', { label: 'Undo', handler: () => { c.date = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderCalendar(); App.renderKanban(); App.renderDashboard(); } });
       }
     });
   });
@@ -2248,6 +2504,90 @@ if (document.readyState === 'loading') {
 
 // Expose for debugging (settings excluded — contains sensitive tokens)
 window.BluVideoOS = { State: { briefs: State.briefs, cards: State.cards, metrics: State.metrics, activity: State.activity }, App };
+
+/* -----------------------------------------------------------
+   GOOGLE CALENDAR
+   ----------------------------------------------------------- */
+const GCal = {
+  SCOPE: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
+
+  connect(clientId) {
+    if (!window.google || !window.google.accounts) {
+      Toast.show('Google Identity Services not loaded yet — try again', 'warn'); return;
+    }
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: GCal.SCOPE,
+      callback: (resp) => {
+        if (resp.error) { Toast.show('Google auth failed: ' + resp.error, 'error'); return; }
+        State.settings.gcalToken = resp.access_token;
+        State.save();
+        GCal.listCalendars(resp.access_token);
+      },
+    });
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
+  },
+
+  async listCalendars(token) {
+    try {
+      const res = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=writer', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      const cals = (data.items || []).filter(c => !c.deleted);
+      const sel = $('#gcal-calendar-select');
+      sel.innerHTML = cals.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.summary)}</option>`).join('');
+      if (State.settings.gcalCalendarId) sel.value = State.settings.gcalCalendarId;
+      $('#gcal-picker').style.display = 'block';
+      Toast.show('Calendars loaded — select one and save', 'info');
+    } catch (e) {
+      Toast.show('Failed to load calendars — check Client ID and try again', 'error');
+    }
+  },
+
+  async createEvent(card) {
+    const token = State.settings.gcalToken;
+    const calId = State.settings.gcalCalendarId;
+    if (!token || !calId) return;
+
+    const date = card.scheduledFor ? new Date(card.scheduledFor) : (card.date ? new Date(card.date + 'T09:00:00') : null);
+    if (!date) return;
+
+    const end = new Date(date.getTime() + 30 * 60000);
+    const body = {
+      summary: `[${card.platform}] ${card.title}`,
+      description: card.content ? card.content.slice(0, 500) : '',
+      start: { dateTime: date.toISOString() },
+      end:   { dateTime: end.toISOString() },
+      colorId: GCal._platformColor(card.platform),
+    };
+
+    try {
+      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 401) {
+        State.settings.gcalToken = '';
+        State.save();
+        App.renderIntegrationStatus();
+        Toast.show('Google Calendar token expired — reconnect in Integrations', 'warn');
+        return;
+      }
+      if (!res.ok) throw new Error(res.status);
+      Toast.show(`Event added to Google Calendar`, 'success');
+    } catch (e) {
+      devWarn('GCal createEvent failed', e);
+    }
+  },
+
+  _platformColor(platform) {
+    const map = { 'LinkedIn': '9', 'Instagram': '6', 'X (Twitter)': '8', 'TikTok': '2', 'Facebook': '11', 'Blog': '10' };
+    return map[platform] || '1';
+  },
+};
 
 // Spin keyframe for sync icon
 const style = document.createElement('style');

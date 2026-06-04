@@ -2598,26 +2598,28 @@ function drawLineChart(svg, values, labels) {
    BUFFER API
    ----------------------------------------------------------- */
 const BufferAPI = {
-  BASE: 'https://api.bufferapp.com/1',
+  PROXY: '/api/buffer',
 
   async fetchProfiles(token) {
-    const res = await fetch(`${this.BASE}/profiles.json?access_token=${encodeURIComponent(token)}`);
+    const res = await fetch(this.PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'profiles', token }),
+    });
     if (!res.ok) throw new Error(`Buffer API ${res.status}`);
     return res.json();
   },
 
-  // Adds post to the Buffer queue (now=false = next available slot).
+  // Adds post to the Buffer queue (next available slot).
   async createUpdate(token, profileIds, text) {
-    const params = new URLSearchParams({ access_token: token, text });
-    profileIds.forEach(id => params.append('profile_ids[]', id));
-    const res = await fetch(`${this.BASE}/updates/create.json`, {
+    const res = await fetch(this.PROXY, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'push', token, profile_ids: profileIds, text }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.message || `Buffer API ${res.status}`);
+      throw new Error(body.error || body.message || `Buffer API ${res.status}`);
     }
     return res.json();
   },

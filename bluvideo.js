@@ -45,7 +45,7 @@ const State = {
   cards: [],
   metrics: [],
   activity: [],
-  settings: { metaPageId: '', metaToken: '', lastMetaSync: null, cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
+  settings: { metaPageId: '', metaToken: '', lastMetaSync: null, bufferProfileId: '', cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
 
   load() {
     try {
@@ -1148,7 +1148,8 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
 
   openBufferPush(card) {
     const hasMedia = card.mediaUrls && card.mediaUrls.length > 0;
-    const bufferUrl = `https://buffer.com/add?text=${encodeURIComponent(card.content)}`;
+    const profileId = State.settings.bufferProfileId;
+    const bufferUrl = `https://buffer.com/add?text=${encodeURIComponent(card.content)}${profileId ? `&profile_ids[]=${encodeURIComponent(profileId)}` : ''}`;
     const isMeta = /instagram|facebook/i.test(card.platform || '');
     const panel = $('#buffer-push-panel');
 
@@ -1614,6 +1615,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   bindIntegrations() {
     $('#set-meta-page').value = State.settings.metaPageId || '';
     $('#set-meta-token').value = State.settings.metaToken || '';
+    $('#set-buffer-profile').value = State.settings.bufferProfileId || '';
     $('#set-cloud-name').value = State.settings.cloudinaryCloud || '';
     $('#set-cloud-preset').value = State.settings.cloudinaryPreset || '';
     $('#meta-form').addEventListener('submit', (e) => {
@@ -1623,6 +1625,16 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       State.save();
       App.renderIntegrationStatus();
       Toast.show('Meta keys saved (stored locally)', 'success');
+    });
+    $('#buffer-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const raw = $('#set-buffer-profile').value.trim();
+      // Accept full URL (https://publish.buffer.com/profile/ID/queue) or bare ID
+      const match = raw.match(/\/profile\/([^/?#]+)/);
+      State.settings.bufferProfileId = match ? match[1] : raw;
+      State.save();
+      App.renderIntegrationStatus();
+      Toast.show('Buffer profile saved', 'success');
     });
     $('#cloudinary-form').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1637,10 +1649,15 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   renderIntegrationStatus() {
     const metaConnected       = State.settings.metaToken && State.settings.metaPageId;
     const supaConnected       = !!window.BluvideoSupabase?.supabase;
+    const bufferConfigured    = !!State.settings.bufferProfileId;
     const cloudinaryConnected = State.settings.cloudinaryCloud && State.settings.cloudinaryPreset;
     const gcalConnected       = !!(State.settings.gcalCalendarId && State.settings.gcalToken);
     $('#meta-status').classList.toggle('connected', !!metaConnected);
     $('#meta-status').textContent = metaConnected ? 'Connected' : 'Disconnected';
+    if ($('#buffer-status')) {
+      $('#buffer-status').classList.toggle('connected', bufferConfigured);
+      $('#buffer-status').textContent = bufferConfigured ? `Profile · ${State.settings.bufferProfileId.slice(0, 8)}…` : 'Not configured';
+    }
     $('#cloudinary-status').classList.toggle('connected', !!cloudinaryConnected);
     $('#cloudinary-status').textContent = cloudinaryConnected ? 'Connected' : 'Disconnected';
     if ($('#ws-status-txt')) $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';

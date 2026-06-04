@@ -660,6 +660,28 @@
             </form>
           </div>
 
+          <!-- Buffer -->
+          <div class="integration-card">
+            <div class="integration-head">
+              <div class="integration-logo" style="color: var(--info);">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.6L2 6l10 4.4L22 6 12 1.6zm0 8.5L4.4 6.9 2 7.8l10 4.4 10-4.4-2.4-.9L12 10.1zm0 4.5L4.4 11.4 2 12.3l10 4.4 10-4.4-2.4-.9L12 14.6zm0 4.5L4.4 15.9 2 16.8l10 4.4 10-4.4-2.4-.9L12 19.1z"/></svg>
+              </div>
+              <div class="integration-meta">
+                <h4>Buffer</h4>
+                <p>One-click push from approved or scheduled cards.</p>
+              </div>
+              <span class="integration-status" id="buffer-status">Not configured</span>
+            </div>
+            <form id="buffer-form">
+              <div class="field">
+                <label class="label" for="set-buffer-profile">Buffer profile URL <span style="font-weight:400; color:var(--text-faint);">— optional, pre-selects your channel</span></label>
+                <input class="input" type="text" id="set-buffer-profile" placeholder="https://publish.buffer.com/profile/abc123/queue" autocomplete="off" />
+                <span style="font-size:11px; color:var(--text-faint); margin-top:4px; display:block;">Find it in your Buffer dashboard URL. Paste the full URL or just the profile ID.</span>
+              </div>
+              <button class="btn" type="submit" style="width:100%; justify-content:center;">Save</button>
+            </form>
+          </div>
+
           <!-- Cloudinary -->
           <div class="integration-card">
             <div class="integration-head">

@@ -1,0 +1,16 @@
+# System
+masterweb-system/
+.vercel/
+.env
+.env.local
+.env*.local
+
+# PDFs and binary docs
+*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (for future use)
+node_modules/

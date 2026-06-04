@@ -1,0 +1,114 @@
+Technical Brief: Bluveo Content & Marketing OS (v2)
+Project Goal: Rebuild the Bluveo social media management dashboard from scratch. The new site must serve as a centralized workspace for a N-person team to manage the end-to-end marketing strategy and content lifecycle.
+Constraints:
+
+Zero Operational Cost: No paid API integrations (e.g., no native OpenAI/Anthropic API calls).
+
+Architecture: HTML/CSS/JS base, optimized to be generated via AI Canvas and refined in VS Code.
+
+Data Persistence: Utilize localStorage for the MVP or a free-tier database (like Supabase or Firebase) for team syncing.
+
+1. Core UX/UI Requirements
+Design System: Modern, minimalist, Dark Mode by default. Clean typography with high-contrast UI elements for status tracking.
+
+Layout: Single-page application (SPA) feel. Fixed left sidebar for navigation (Dashboard, Briefs, Kanban, Calendar, Analytics). Main stage for active work.
+
+2. Feature Modules
+A. The "Prompt-Generator" Briefing Engine
+Since native AI APIs are excluded, this module must orchestrate the workflow between the user and external free LLMs.
+
+Inputs: Form fields for Campaign Objective, Target Audience, Tone of Voice, Key Takeaways, and Call to Action.
+
+Output Mechanism: A "Generate Master Prompt" button. This takes all form inputs, concatenates them into a highly optimized system prompt, and copies it to the user's clipboard to be pasted into Claude or ChatGPT.
+
+Brief Library: A table to save and access historical briefs.
+
+B. Content Kanban & Status Tracker
+Replaces the linear status lists with a visual workflow tailored for a n-person team.
+
+Columns: Ideation -> Drafting -> In Review -> Approved -> Scheduled -> Published.
+
+Card Anatomy: Each card needs a Title, Assignee Tag (to divide work among the 3 team members), Platform Tag (IG, LinkedIn, X), and a link back to its original Brief.
+
+Functionality: Drag-and-drop interface to move cards between columns.
+
+C. Scheduling & Calendar Hub
+A staging ground before manual export to free publishing tools.
+
+View: A monthly calendar grid that populates cards based on their assigned "Publish Date."
+
+Actionable Links: External outbound links on scheduled cards (e.g., "Open Meta Business Suite" or "Open Buffer") to facilitate the manual scheduling step.
+
+D. Lean Analytics Dashboard
+Since automated API tracking is excluded, this relies on manual data logging to track marketing ROI.
+
+Data Entry: A simple weekly form to manually input key metrics (Total Reach, Engagement Rate, Clicks/Leads generated).
+
+Visualization: Basic CSS-rendered charts or progress bars comparing week-over-week growth against predefined team goals.
+
+3. Implementation Steps for LLM Generation
+Step 1: Generate the semantic HTML structure and Tailwind CSS layout for the main application shell (Sidebar + Header + Main Content Area).
+
+Step 2: Build the Briefing Engine form and the JavaScript logic required to concatenate the inputs and trigger the "Copy to Clipboard" function.
+
+Step 3: Create the Kanban board UI with static placeholder cards, followed by the JavaScript logic for drag-and-drop state management.
+
+4. Zero-Cost Tech Stack & Tool Ecosystem
+To keep the platform 100% free to operate, the architecture avoids paid APIs and instead orchestrates a manual data-shuttle workflow using the free tiers of the following software:
+
+A. Data Persistence & Hosting (The Backend)
+Supabase (Free Tier): Used to host the database for the 3-person team. The free tier provides a full PostgreSQL database (up to 500 MB), which is more than enough to store text-based briefs, Kanban card states, and manual analytics logs for years.
+
+Vercel (Hobby Tier): Used for deploying and hosting the frontend. It provides free SSL, automated deployments from GitHub, and fast global delivery at zero cost.
+
+B. Content Creation & Strategy (The AI Engine)
+Claude (Free Tier / Web Interface): The primary target for the Briefing Engine's generated prompts. Excellent for nuanced copywriting, maintaining tone consistency, and structuring long-form text.
+
+ChatGPT (Free Tier / Web Interface): The secondary target for prompt pasting. Best utilized for rapid ideation, high-volume caption generation, and formatting variations.
+
+C. Publishing & Scheduling (The Output Pipeline)
+Buffer (Free Plan): Integrated via outbound deep links. The free tier allows connection of up to 3 social channels (e.g., LinkedIn, X, Instagram) and holds up to 10 scheduled posts per channel at a time.
+
+Meta Business Suite (Free): For direct, advanced scheduling of Instagram and Facebook content without queue limitations. The dashboard will feature direct quick-links to the Meta publishing canvas.
+
+Updated UI Workflow Integration
+The "Shuttle" Buttons: Every content card in the "Drafting" stage will feature a single-click button that opens claude.ai or chatgpt.com in a new tab while simultaneously copying the generated brief prompt to the clipboard.
+
+The "Publish" Links: Every card in the "Scheduled" column will feature a direct outbound link to the respective publishing platform (e.g., publish.buffer.com or Meta Business Suite) to quickly paste the finalized copy and upload media assets manually.
+1. Automating the Buffer Handoff (Zero-Cost Methods)
+Instead of just providing a generic link to Buffer, the site can use one of two free methods to push the content directly into the scheduling queue:
+
+Method A: Pre-filled Intent URLs (Client-Side, Easiest): Buffer allows you to pass text and links directly through a URL structure.
+
+How it works in the site: When a user clicks "Send to Buffer" on an approved Kanban card, the JavaScript takes the finalized post copy, URL-encodes it, and opens a new tab directed to [https://buffer.com/add?text=](https://buffer.com/add?text=)[YOUR_ENCODED_COPY]. This opens the Buffer composer with the text already pasted and ready to schedule.
+
+Method B: Webhooks via Make.com (Serverless Automation): Make.com has a generous free tier (1,000 operations/month).
+
+How it works in the site: The site sends a simple, free fetch() request (a webhook) containing the post text and scheduled date. Make.com catches this webhook and automatically pushes it into your free Buffer queue via their native integration.
+
+2. Adding "Pixel" & Visual Creation Tools to the Stack
+To handle the graphic design and visual asset creation within your zero-cost ecosystem, add the following to the "Zero-Cost Tech Stack & Tool Ecosystem" section of the brief:
+
+D. Visual Assets & Pixel Creation (The Design Engine)
+Figma (Free Tier): Used as the primary layout engine for carousels, UI mockups, and vector graphics. The free tier allows unlimited drafts and 3 active collaborative projects (perfect for the n-person team).
+
+Site Integration: Kanban cards will include a "Figma Board URL" field so team members can jump straight to the specific graphic being designed.
+
+Canva (Free Tier): Utilized for rapid templating and quick visual edits when complex vector work isn't required.
+
+Bloom and highsfield mcps: for creating custom pictures
+
+Site Integration: The Briefing Engine will include an "Image Prompt" output. Just like the copy generation, this takes the campaign goals and generates a highly specific visual prompt to be pasted into these free AI image generators.
+
+
+
+Updated Brief Addition for Canvas:
+When you paste the brief into your LLM, append this specific instruction for the developer/Canvas:
+
+New UI Requirement for Kanban Cards:
+
+Add an "Asset Links" section to each task card to store Figma/Canva URLs.
+
+Create a "Push to Buffer" button on the card. Write the JavaScript function to URL-encode the card's text content and dynamically generate the [https://buffer.com/add?text=](https://buffer.com/add?text=) link so it pre-fills the user's Buffer composer upon clicking.
+
+Update the Briefing Engine to output two separate prompts: one for Copywriting (Claude/ChatGPT) and one for Visuals .

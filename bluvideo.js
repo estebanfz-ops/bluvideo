@@ -45,7 +45,7 @@ const State = {
   cards: [],
   metrics: [],
   activity: [],
-  settings: { metaPageId: '', metaToken: '', lastMetaSync: null, bufferProfileId: '', cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
+  settings: { metaPageId: '', metaToken: '', instagramId: '', lastMetaSync: null, bufferProfileId: '', cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
 
   load() {
     try {
@@ -1570,27 +1570,84 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#meta-sync-meta').textContent = State.settings.lastMetaSync ? fmtRelative(State.settings.lastMetaSync) : 'Never';
   },
 
-  metaSync() {
-    if (!State.settings.metaToken) {
-      Toast.show('Add a Meta API token in Integrations first', 'warn', { label: 'Open', handler: () => App.switchView('settings') });
+  async metaSync() {
+    const { metaToken, metaPageId, instagramId } = State.settings;
+    if (!metaToken) {
+      Toast.show('Add a Meta access token in Integrations first', 'warn', { label: 'Open', handler: () => App.switchView('settings') });
       return;
     }
-    $('#meta-sync-btn').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 0.8s linear infinite;"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></svg> Syncing…';
-    setTimeout(() => {
-      // simulate: add a fake new row
-      const last = State.metrics[State.metrics.length - 1];
-      State.metrics.push({
-        date: new Date().toISOString().slice(0,10),
-        reach: Math.round(last.reach * (1 + Math.random() * 0.15)),
-        engage: Math.round(last.engage * (1 + Math.random() * 0.15)),
-        followers: Math.round(last.followers * (1 + Math.random() * 0.05)),
-      });
-      State.settings.lastMetaSync = Date.now();
-      State.save();
-      App.renderAnalytics();
-      $('#meta-sync-btn').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></svg> Sync Meta <span class="kbd">' + fmtRelative(State.settings.lastMetaSync) + '</span>';
-      Toast.show('Meta sync complete', 'success');
-    }, 1100);
+    if (!metaPageId && !instagramId) {
+      Toast.show('Add a Page ID or Instagram ID in Integrations first', 'warn', { label: 'Open', handler: () => App.switchView('settings') });
+      return;
+    }
+
+    const spinSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></svg>';
+    const syncSvg  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></svg>';
+    const btn = $('#meta-sync-btn');
+    btn.disabled = true;
+    btn.innerHTML = `${spinSvg} Syncing…`;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const results = [];
+    const errors  = [];
+
+    // --- Instagram ---
+    if (instagramId) {
+      try {
+        const [insights, profile] = await Promise.all([
+          MetaAPI.igInsights(instagramId, metaToken),
+          MetaAPI.igProfile(instagramId, metaToken),
+        ]);
+        const reachArr = insights.data?.find(m => m.name === 'reach')?.values || [];
+        const impArr   = insights.data?.find(m => m.name === 'impressions')?.values || [];
+        const reach    = reachArr.reduce((s, v) => s + (v.value || 0), 0);
+        const imps     = impArr.reduce((s, v)   => s + (v.value || 0), 0);
+        const followers = profile.followers_count || 0;
+        // Engagement rate: impressions beyond first view / reach (proxy for repeat engagement)
+        const engage = reach > 0 ? Math.round((imps / reach - 1) * 1000) / 10 : 0;
+        results.push({ date: today, platform: 'instagram', reach, engage, followers });
+      } catch (e) { errors.push('Instagram: ' + e.message); }
+    }
+
+    // --- Facebook Page ---
+    if (metaPageId) {
+      try {
+        const [insights, page] = await Promise.all([
+          MetaAPI.pageInsights(metaPageId, metaToken),
+          MetaAPI.pageFans(metaPageId, metaToken),
+        ]);
+        const latest = arr => arr?.values?.slice(-1)[0]?.value || 0;
+        const reach    = latest(insights.data?.find(m => m.name === 'page_reach'));
+        const engaged  = latest(insights.data?.find(m => m.name === 'page_engaged_users'));
+        const followers = page.fan_count || 0;
+        const engage   = reach > 0 ? Math.round((engaged / reach) * 1000) / 10 : 0;
+        results.push({ date: today, platform: 'facebook', reach, engage, followers });
+      } catch (e) { errors.push('Facebook: ' + e.message); }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = `${syncSvg} Sync Meta <span class="kbd">${fmtRelative(Date.now())}</span>`;
+
+    if (!results.length) {
+      Toast.show('Sync failed — ' + errors[0], 'error');
+      return;
+    }
+
+    // Upsert: replace existing same-date+platform entry or append
+    results.forEach(metric => {
+      const idx = State.metrics.findIndex(m => m.date === metric.date && m.platform === metric.platform);
+      if (idx >= 0) State.metrics[idx] = metric;
+      else State.metrics.push(metric);
+      DB.saveAnalytic(metric).catch(devWarn);
+    });
+    State.metrics.sort((a, b) => a.date.localeCompare(b.date));
+    State.settings.lastMetaSync = Date.now();
+    State.save();
+    App.renderAnalytics();
+
+    const synced = results.map(r => r.platform).join(' + ');
+    const errNote = errors.length ? ` · ${errors.length} error(s)` : '';
+    Toast.show(`Synced ${synced}${errNote}`, errors.length ? 'warn' : 'success');
   },
 
   addMetric() {
@@ -1612,15 +1669,17 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
 
   /* -------- INTEGRATIONS -------- */
   bindIntegrations() {
-    $('#set-meta-page').value = State.settings.metaPageId || '';
-    $('#set-meta-token').value = State.settings.metaToken || '';
+    $('#set-meta-page').value  = State.settings.metaPageId   || '';
+    $('#set-meta-ig').value    = State.settings.instagramId  || '';
+    $('#set-meta-token').value = State.settings.metaToken    || '';
     $('#set-buffer-profile').value = State.settings.bufferProfileId || '';
     $('#set-cloud-name').value = State.settings.cloudinaryCloud || '';
     $('#set-cloud-preset').value = State.settings.cloudinaryPreset || '';
     $('#meta-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      State.settings.metaPageId = $('#set-meta-page').value;
-      State.settings.metaToken = $('#set-meta-token').value;
+      State.settings.metaPageId  = $('#set-meta-page').value.trim();
+      State.settings.instagramId = $('#set-meta-ig').value.trim();
+      State.settings.metaToken   = $('#set-meta-token').value.trim();
       State.save();
       App.renderIntegrationStatus();
       Toast.show('Meta keys saved (stored locally)', 'success');
@@ -1646,7 +1705,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   },
 
   renderIntegrationStatus() {
-    const metaConnected       = State.settings.metaToken && State.settings.metaPageId;
+    const metaConnected       = State.settings.metaToken && (State.settings.metaPageId || State.settings.instagramId);
     const supaConnected       = !!window.BluvideoSupabase?.supabase;
     const bufferConfigured    = !!State.settings.bufferProfileId;
     const cloudinaryConnected = State.settings.cloudinaryCloud && State.settings.cloudinaryPreset;
@@ -2499,6 +2558,43 @@ function drawLineChart(svg, values, labels) {
   svg.innerHTML = grid + `<path class="area" d="${area}"/><path class="line" d="${path}"/>` + dots + xlabels;
 }
 
+
+/* -----------------------------------------------------------
+   META GRAPH API
+   ----------------------------------------------------------- */
+const MetaAPI = {
+  BASE: 'https://graph.facebook.com/v19.0',
+
+  async _get(path, token) {
+    const sep = path.includes('?') ? '&' : '?';
+    const res = await fetch(`${this.BASE}/${path}${sep}access_token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || `Meta API ${res.status}`);
+    return data;
+  },
+
+  // Instagram: sum of daily reach + impressions over last 7 days
+  async igInsights(igId, token) {
+    const until = Math.floor(Date.now() / 1000);
+    const since = until - 7 * 86400;
+    return this._get(`${igId}/insights?metric=reach,impressions&period=day&since=${since}&until=${until}`, token);
+  },
+
+  // Instagram: current follower count
+  async igProfile(igId, token) {
+    return this._get(`${igId}?fields=followers_count,username`, token);
+  },
+
+  // Facebook Page: weekly reach + engagement
+  async pageInsights(pageId, token) {
+    return this._get(`${pageId}/insights?metric=page_impressions,page_reach,page_engaged_users&period=week`, token);
+  },
+
+  // Facebook Page: fan (follower) count
+  async pageFans(pageId, token) {
+    return this._get(`${pageId}?fields=fan_count,name`, token);
+  },
+};
 
 /* -----------------------------------------------------------
    BOOT

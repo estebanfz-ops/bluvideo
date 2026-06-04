@@ -649,14 +649,21 @@
             </div>
             <form id="meta-form">
               <div class="field">
-                <label class="label" for="set-meta-page">Page ID</label>
-                <input class="input" type="text" id="set-meta-page" placeholder="1023456789" autocomplete="off" />
+                <label class="label" for="set-meta-page">Facebook Page ID <span style="font-weight:400;color:var(--text-faint);">— optional</span></label>
+                <input class="input" type="text" id="set-meta-page" placeholder="123456789012345" autocomplete="off" />
+                <span style="font-size:11px;color:var(--text-faint);margin-top:4px;display:block;">Your Facebook Page → About → scroll to bottom → Page ID.</span>
               </div>
               <div class="field">
-                <label class="label" for="set-meta-token">Access token</label>
-                <input class="input" type="password" id="set-meta-token" placeholder="EAAGm0P…" autocomplete="off" />
+                <label class="label" for="set-meta-ig">Instagram Business Account ID <span style="font-weight:400;color:var(--text-faint);">— optional</span></label>
+                <input class="input" type="text" id="set-meta-ig" placeholder="17841400000000000" autocomplete="off" />
+                <span style="font-size:11px;color:var(--text-faint);margin-top:4px;display:block;">Graph API Explorer → <code style="font-size:11px;">/{page-id}?fields=instagram_business_account</code> → copy the id.</span>
               </div>
-              <button class="btn" type="submit" style="width:100%; justify-content:center;">Save Meta keys</button>
+              <div class="field">
+                <label class="label" for="set-meta-token">Page Access Token</label>
+                <input class="input" type="password" id="set-meta-token" placeholder="EAAGm0P…" autocomplete="off" />
+                <span style="font-size:11px;color:var(--text-faint);margin-top:4px;display:block;">Graph API Explorer → select your app → Generate Token → call <code style="font-size:11px;">me/accounts</code> → copy the page's access_token (permanent).</span>
+              </div>
+              <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;">Save &amp; connect</button>
             </form>
           </div>
 

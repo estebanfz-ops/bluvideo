@@ -1541,6 +1541,122 @@ html[data-theme="light"] .tool-open { background: oklch(22% 0.01 250); color: ok
 .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ============================================================
+   BUFFER PUSH PANEL
+   ============================================================ */
+.buffer-push-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: oklch(0% 0 0 / 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+.buffer-push-scrim.open { display: flex; }
+
+.buffer-push-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 480px;
+  margin: 16px;
+  box-shadow: 0 24px 64px oklch(0% 0 0 / 0.4);
+  overflow: hidden;
+}
+
+.bp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+}
+.bp-title { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+.bp-sub { font-size: 0.78rem; color: var(--text-faint); margin-top: 2px; }
+
+.bp-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bp-copy-preview {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 90px;
+  overflow: hidden;
+}
+.bp-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.bp-media-list { display: flex; flex-direction: column; gap: 8px; }
+.bp-media-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+.bp-media-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface-hi);
+}
+.bp-media-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.bp-media-icon svg { width: 18px; height: 18px; }
+.bp-media-url {
+  flex: 1;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.bp-copy-btn { flex-shrink: 0; font-size: 0.75rem; padding: 4px 10px; }
+.bp-hint {
+  font-size: 0.77rem;
+  color: var(--text-faint);
+  margin: 0;
+  line-height: 1.5;
+}
+.bp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border-soft);
+}
+.bp-foot a.btn { text-decoration: none; }
+
+/* ============================================================
    MEDIA UPLOAD — card modal
    ============================================================ */
 .media-upload-area {

@@ -573,6 +573,7 @@ const App = {
 
       if (e.key === 'Escape') {
         if ($('#palette-scrim').classList.contains('open')) Palette.close();
+        else if ($('#buffer-push-scrim').classList.contains('open')) App.closeBufferPush();
         else if ($('#card-scrim').classList.contains('open')) App.closeCardModal();
         return;
       }
@@ -998,6 +999,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   /* -------- CARD MODAL -------- */
   bindCardModal() {
     $('#card-scrim').addEventListener('click', (e) => { if (e.target === $('#card-scrim')) App.closeCardModal(); });
+    $('#buffer-push-scrim').addEventListener('click', (e) => { if (e.target === $('#buffer-push-scrim')) App.closeBufferPush(); });
     $('#c-upload-btn').addEventListener('click', () => {
       Cloudinary.upload((url) => {
         App._mediaUrls = App._mediaUrls || [];
@@ -1030,6 +1032,69 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   closeCardModal() {
     $('#card-scrim').classList.remove('open');
     App.cardEditingId = null;
+  },
+
+  openBufferPush(card) {
+    const hasMedia = card.mediaUrls && card.mediaUrls.length > 0;
+    const bufferUrl = `https://buffer.com/add?text=${encodeURIComponent(card.content)}`;
+    const panel = $('#buffer-push-panel');
+
+    panel.innerHTML = `
+      <div class="bp-head">
+        <div class="bp-title-block">
+          <div class="bp-title">Push to Buffer</div>
+          <div class="bp-sub">${escapeHtml(card.title)} &middot; ${escapeHtml(card.platform)}</div>
+        </div>
+        <button class="icon-btn" id="bp-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+        </button>
+      </div>
+      <div class="bp-body">
+        <div class="bp-copy-preview">${escapeHtml(card.content.slice(0, 200))}${card.content.length > 200 ? '…' : ''}</div>
+        ${hasMedia ? `
+        <div class="bp-section-label">Media &middot; ${card.mediaUrls.length} file${card.mediaUrls.length !== 1 ? 's' : ''}</div>
+        <div class="bp-media-list">
+          ${card.mediaUrls.map((url, i) => {
+            const isVideo = /\.(mp4|mov|webm|avi)(\?|$)/i.test(url);
+            const short = url.split('/').pop().split('?')[0].slice(0, 40);
+            return `<div class="bp-media-row">
+              ${isVideo
+                ? `<div class="bp-media-icon">${svgIcon('send')}</div>`
+                : `<img class="bp-media-thumb" src="${escapeHtml(url)}" alt="" loading="lazy" />`
+              }
+              <span class="bp-media-url" title="${escapeHtml(url)}">${escapeHtml(short)}</span>
+              <button class="btn bp-copy-btn" data-url="${escapeHtml(url)}" data-idx="${i}">Copy URL</button>
+            </div>`;
+          }).join('')}
+        </div>
+        <p class="bp-hint">In Buffer, click the image icon in the composer and paste each URL.</p>
+        ` : `<p class="bp-hint">No media attached — copy only.</p>`}
+      </div>
+      <div class="bp-foot">
+        <button class="btn" id="bp-cancel">Cancel</button>
+        <a class="btn btn-primary" href="${escapeHtml(bufferUrl)}" target="_blank" rel="noopener" id="bp-open">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open Buffer
+        </a>
+      </div>
+    `;
+
+    $('#buffer-push-scrim').classList.add('open');
+
+    $('#bp-close').addEventListener('click', () => App.closeBufferPush());
+    $('#bp-cancel').addEventListener('click', () => App.closeBufferPush());
+    panel.querySelectorAll('.bp-copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        copyText(btn.dataset.url, () => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy URL'; }, 1800);
+        });
+      });
+    });
+  },
+
+  closeBufferPush() {
+    $('#buffer-push-scrim').classList.remove('open');
   },
 
   saveCard() {
@@ -1488,7 +1553,7 @@ function setupKanbanDnd() {
     e.stopPropagation();
     const c = State.cards.find(x => x.id === b.dataset.buffer);
     if (!c || !c.content) { Toast.show('Add final copy on the card first', 'warn'); return; }
-    window.open(`https://buffer.com/add?text=${encodeURIComponent(c.content)}`, '_blank', 'noopener');
+    App.openBufferPush(c);
   }));
 }
 

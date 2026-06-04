@@ -14,29 +14,38 @@ export default async function handler(req, res) {
   if (!token) return res.status(400).json({ error: 'Missing token' });
   if (!action) return res.status(400).json({ error: 'Missing action' });
 
+  // Buffer v1 accepts both Authorization: Bearer and ?access_token=.
+  // Use Bearer header as primary (more reliable with newer tokens).
+  const authHeaders = {
+    'Authorization': `Bearer ${token}`,
+  };
+
   try {
     if (action === 'profiles') {
-      const r = await fetch(
-        `${BUFFER_BASE}/profiles.json?access_token=${encodeURIComponent(token)}`
-      );
+      const r = await fetch(`${BUFFER_BASE}/profiles.json`, {
+        headers: authHeaders,
+      });
       const data = await r.json();
-      return res.status(r.status).json(data);
+      // Surface the full Buffer error so the client can show it
+      if (!r.ok) return res.status(r.status).json({ error: data.error || data.message || JSON.stringify(data) });
+      return res.status(200).json(data);
     }
 
     if (action === 'push') {
-      if (!text)        return res.status(400).json({ error: 'Missing text' });
+      if (!text)                return res.status(400).json({ error: 'Missing text' });
       if (!profile_ids?.length) return res.status(400).json({ error: 'Missing profile_ids' });
 
-      const params = new URLSearchParams({ access_token: token, text });
+      const params = new URLSearchParams({ text });
       profile_ids.forEach(id => params.append('profile_ids[]', id));
 
       const r = await fetch(`${BUFFER_BASE}/updates/create.json`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { ...authHeaders, 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString(),
       });
       const data = await r.json();
-      return res.status(r.status).json(data);
+      if (!r.ok) return res.status(r.status).json({ error: data.error || data.message || JSON.stringify(data) });
+      return res.status(200).json(data);
     }
 
     return res.status(400).json({ error: 'Unknown action' });

@@ -850,6 +850,42 @@
   <div class="buffer-push-panel" id="buffer-push-panel"></div>
 </div>
 
+<!-- Schedule Modal -->
+<div class="scrim modal-scrim" id="schedule-scrim">
+  <div class="modal schedule-modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Schedule Post</div>
+        <div class="schedule-card-info">
+          <span class="em" id="schedule-card-title"></span>
+          &middot;
+          <span id="schedule-card-platform"></span>
+        </div>
+      </div>
+      <button class="icon-btn" id="schedule-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label" for="schedule-datetime">Publish date &amp; time</label>
+      <input type="datetime-local" id="schedule-datetime" class="input" />
+      <div class="schedule-presets">
+        <span class="schedule-presets-label">Quick times</span>
+        <button class="btn btn-xs" data-preset-hour="9" type="button">9 AM</button>
+        <button class="btn btn-xs" data-preset-hour="12" type="button">12 PM</button>
+        <button class="btn btn-xs" data-preset-hour="17" type="button">5 PM</button>
+        <button class="btn btn-xs" data-preset-hour="20" type="button">8 PM</button>
+      </div>
+      <p class="schedule-note">Posts are published automatically by the scheduler every minute. Make sure <strong>AYRSHARE_API_KEY</strong> and <strong>AYRSHARE_PROFILE_KEY</strong> are set in Supabase Edge Function secrets.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="schedule-cancel" type="button">Cancel</button>
+      <button class="btn kard-schedule-btn" id="schedule-now" type="button">Publish Now</button>
+      <button class="btn btn-primary" id="schedule-confirm" type="button">Schedule</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast stack -->
 <div class="toast-stack" id="toast-stack"></div>
 <textarea id="clipboard-helper" style="position:absolute; left:-9999px;" tabindex="-1" aria-hidden="true"></textarea>

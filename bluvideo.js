@@ -13,6 +13,7 @@ const STATUSES = [
   { id: 'approved',  label: 'Approved',  color: 'oklch(74% 0.16 152)', icon: 'check' },
   { id: 'scheduled', label: 'Scheduled', color: 'oklch(73% 0.16 50)',  icon: 'clock' },
   { id: 'published', label: 'Published', color: 'oklch(72% 0.13 200)', icon: 'send' },
+  { id: 'failed',    label: 'Failed',    color: 'oklch(62% 0.19 22)',  icon: 'alert' },
 ];
 
 const PLATFORM_ICONS = {
@@ -147,6 +148,13 @@ function fmtDate(iso) {
   if (isNaN(d)) return '';
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+function fmtDatetime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
+    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
 function fmtRelative(ts) {
   const diff = (Date.now() - ts) / 1000;
   if (diff < 60) return 'just now';
@@ -176,6 +184,9 @@ function svgIcon(name) {
     pen:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     eye:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>',
     send:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>',
+    alert:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg>',
+    retry:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
     settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09c0 .68.4 1.3 1.03 1.56a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9c.26.63.88 1.03 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>',
   };
   return map[name] || map.doc;
@@ -283,6 +294,10 @@ const DB = {
           assignee: p.created_by_name || 'Member 1',
           platform: (p.platforms || [])[0] || 'LinkedIn',
           date: p.scheduled_for ? p.scheduled_for.slice(0, 10) : '',
+          scheduledFor: p.scheduled_for || null,
+          publishedAt: p.published_at || null,
+          ayrsharePostId: p.ayrshare_post_id || null,
+          failureReason: p.failure_reason || null,
           content: p.body || '',
           mediaUrls: p.media_urls || [],
           figma: '',
@@ -340,9 +355,10 @@ const DB = {
       'draft': 'drafting',
       'in_review': 'review',
       'approved': 'approved',
+      'publishing': 'scheduled', // treat in-flight as still scheduled
       'scheduled': 'scheduled',
       'published': 'published',
-      'failed': 'published',
+      'failed': 'failed',
     };
     return map[supaStatus] || 'drafting';
   },
@@ -356,6 +372,7 @@ const DB = {
       'approved': 'approved',
       'scheduled': 'scheduled',
       'published': 'published',
+      'failed': 'failed',
     };
     return map[appStatus] || 'draft';
   },
@@ -369,7 +386,8 @@ const DB = {
       platforms: [card.platform],
       media_urls: card.mediaUrls || [],
       status: this._toSupaStatus(card.status),
-      scheduled_for: card.date || null,
+      scheduled_for: card.scheduledFor || null,
+      failure_reason: card.failureReason || null,
       created_by: App.currentUser.id,
     };
 
@@ -458,6 +476,7 @@ const App = {
     this.bindBriefForm();
     this.bindMonthlyPlanner();
     this.bindCardModal();
+    this.bindScheduleModal();
     this.bindPalette();
     this.bindKanbanFilters();
     this.bindCalendarNav();
@@ -466,6 +485,9 @@ const App = {
     this.applyTheme(localStorage.getItem('bluVideoOS_theme') || 'dark');
     this.renderAll();
     this.switchView('dashboard');
+    // Scheduler: run on load + every 60s to publish due posts
+    App.runScheduler();
+    setInterval(() => { if (App.currentUser) App.runScheduler(); }, 60000);
   },
 
   showAuthScreen() {
@@ -1124,6 +1146,95 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#buffer-push-scrim').classList.remove('open');
   },
 
+  /* -------- SCHEDULE MODAL -------- */
+  _schedulingId: null,
+
+  openScheduleModal(id) {
+    const c = State.cards.find(x => x.id === id);
+    if (!c) return;
+    this._schedulingId = id;
+    $('#schedule-card-title').textContent = c.title;
+    $('#schedule-card-platform').textContent = c.platform;
+    const def = new Date();
+    def.setDate(def.getDate() + 1);
+    def.setHours(9, 0, 0, 0);
+    $('#schedule-datetime').value = def.toISOString().slice(0, 16);
+    $('#schedule-scrim').classList.add('open');
+  },
+
+  closeScheduleModal() {
+    $('#schedule-scrim').classList.remove('open');
+    this._schedulingId = null;
+  },
+
+  confirmSchedule(publishNow) {
+    const c = State.cards.find(x => x.id === this._schedulingId);
+    if (!c) return;
+    let iso;
+    if (publishNow) {
+      iso = new Date().toISOString();
+    } else {
+      const val = $('#schedule-datetime').value;
+      if (!val) { Toast.show('Pick a date and time', 'warn'); return; }
+      const parsed = new Date(val);
+      if (isNaN(parsed)) { Toast.show('Invalid date', 'warn'); return; }
+      iso = parsed.toISOString();
+    }
+    c.scheduledFor = iso;
+    c.date = iso.slice(0, 10);
+    c.status = 'scheduled';
+    State.pushActivity(
+      `Scheduled "<span class="em">${escapeHtml(c.title)}</span>" for ${publishNow ? 'immediate publish' : fmtDatetime(iso)}`,
+      'clock'
+    );
+    State.save();
+    DB.saveCard(c).catch(console.warn);
+    this.closeScheduleModal();
+    this.renderKanban();
+    this.renderDashboard();
+    this.renderCalendar();
+    Toast.show(publishNow ? 'Queued — will publish within 1 min' : `Scheduled for ${fmtDatetime(iso)}`, 'success');
+    if (publishNow) this.runScheduler();
+  },
+
+  bindScheduleModal() {
+    const scrim = $('#schedule-scrim');
+    scrim.addEventListener('click', (e) => { if (e.target === scrim) App.closeScheduleModal(); });
+    $('#schedule-close').addEventListener('click', () => App.closeScheduleModal());
+    $('#schedule-cancel').addEventListener('click', () => App.closeScheduleModal());
+    $('#schedule-confirm').addEventListener('click', () => App.confirmSchedule(false));
+    $('#schedule-now').addEventListener('click', () => App.confirmSchedule(true));
+    $$('[data-preset-hour]', scrim).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cur = $('#schedule-datetime').value;
+        const d = cur ? new Date(cur) : new Date();
+        d.setHours(parseInt(btn.dataset.presetHour, 10), 0, 0, 0);
+        if (d <= new Date()) d.setDate(d.getDate() + 1);
+        $('#schedule-datetime').value = d.toISOString().slice(0, 16);
+      });
+    });
+  },
+
+  /* -------- PUBLISHING SCHEDULER -------- */
+  async runScheduler() {
+    const supa = window.BluvideoSupabase?.supabase;
+    if (!supa || !App.currentUser) return;
+    try {
+      const { data, error } = await supa.functions.invoke('cron-scheduler');
+      if (error) { console.warn('[Scheduler]', error); return; }
+      if (data?.processed > 0) {
+        await DB.loadAll();
+        App.renderAll();
+        Toast.show(
+          `${data.processed} post${data.processed > 1 ? 's' : ''} published via Ayrshare`,
+          'success'
+        );
+      }
+    } catch (e) {
+      console.warn('[Scheduler]', e);
+    }
+  },
+
   saveCard() {
     const title = $('#c-title').value.trim();
     if (!title) { Toast.show('Add a title first', 'warn'); $('#c-title').focus(); return; }
@@ -1714,6 +1825,8 @@ Return a JSON array:
    ----------------------------------------------------------- */
 function renderCard(c) {
   let action = '';
+  let extra = '';
+
   if (c.status === 'drafting' || c.status === 'ideation') {
     action = `<div class="kard-action">
       <button class="btn brand-claude" data-claude="${c.id}">${svgIcon('cmd')} Open in Claude</button>
@@ -1723,18 +1836,39 @@ function renderCard(c) {
     action = `<div class="kard-action">
       <button class="btn kard-approve-btn" data-approve="${c.id}">${svgIcon('check')} Approve</button>
     </div>`;
-  } else if (c.status === 'approved' || c.status === 'scheduled') {
+  } else if (c.status === 'approved') {
     action = `<div class="kard-action">
-      <button class="btn brand-buffer" data-buffer="${c.id}">${svgIcon('send')} Push to Buffer</button>
+      <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Schedule</button>
+      <button class="btn brand-buffer" data-buffer="${c.id}">${svgIcon('send')} Buffer</button>
     </div>`;
+  } else if (c.status === 'scheduled') {
+    const schFmt = c.scheduledFor ? fmtDatetime(c.scheduledFor) : (c.date ? fmtDate(c.date) : '');
+    if (schFmt) extra = `<div class="kard-time-badge kard-scheduled-time">${svgIcon('clock')} ${schFmt}</div>`;
+    if (!c.scheduledFor) {
+      action = `<div class="kard-action">
+        <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Set Publish Time</button>
+      </div>`;
+    }
+  } else if (c.status === 'failed') {
+    const reason = c.failureReason ? escapeHtml(c.failureReason.slice(0, 60)) : 'Publish failed';
+    const full = escapeHtml(c.failureReason || 'Publish failed');
+    extra = `<div class="kard-failure-reason" title="${full}">${reason}${(c.failureReason || '').length > 60 ? '…' : ''}</div>`;
+    action = `<div class="kard-action">
+      <button class="btn kard-retry-btn" data-retry="${c.id}">${svgIcon('retry')} Retry</button>
+    </div>`;
+  } else if (c.status === 'published') {
+    const pubFmt = c.publishedAt ? fmtDatetime(c.publishedAt) : (c.date ? fmtDate(c.date) : '');
+    if (pubFmt) extra = `<div class="kard-time-badge kard-published-time">${svgIcon('check')} ${pubFmt}</div>`;
   }
+
   return `
-    <div class="kard" draggable="true" data-id="${c.id}">
+    <div class="kard${c.status === 'failed' ? ' kard-failed' : ''}" draggable="true" data-id="${c.id}">
       <div class="kard-head">
         <span class="platform-pill" data-platform="${c.platform}">${PLATFORM_ICONS[c.platform] || ''} ${c.platform}</span>
         ${c.date ? `<span class="kard-meta">${fmtDate(c.date)}</span>` : ''}
       </div>
       <div class="kard-title">${escapeHtml(c.title)}</div>
+      ${extra}
       <div class="kard-foot">
         <div class="avatar-mini" data-m="${ASSIGNEE_NUM(c.assignee)}" title="${c.assignee}">${ASSIGNEE_INITIAL(c.assignee)}</div>
         <div class="links">
@@ -1830,6 +1964,26 @@ function setupKanbanDnd() {
     App.renderKanban();
     App.renderDashboard();
     Toast.show('Post approved ✓', 'success');
+  }));
+
+  board.querySelectorAll('[data-schedule]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    App.openScheduleModal(b.dataset.schedule);
+  }));
+
+  board.querySelectorAll('[data-retry]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const c = State.cards.find(x => x.id === b.dataset.retry);
+    if (!c) return;
+    c.status = 'approved';
+    c.failureReason = null;
+    c.scheduledFor = null;
+    State.pushActivity(`Retrying "<span class="em">${escapeHtml(c.title)}</span>"`, 'retry');
+    State.save();
+    DB.saveCard(c).catch(console.warn);
+    App.renderKanban();
+    App.renderDashboard();
+    Toast.show('Moved back to Approved — reschedule to retry', 'info');
   }));
 }
 

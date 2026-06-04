@@ -1718,3 +1718,133 @@ html[data-theme="light"] .tool-open { background: oklch(22% 0.01 250); color: ok
 }
 .media-thumb-del svg { width: 10px; height: 10px; }
 .media-thumb:hover .media-thumb-del { opacity: 1; }
+
+/* ============================================================
+   PHASE 2 — MONTHLY PLANNER
+   ============================================================ */
+
+/* Platform checkboxes */
+.platform-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 4px;
+}
+.platform-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-dim);
+  transition: border-color var(--t-fast), background var(--t-fast);
+  user-select: none;
+}
+.platform-check:hover { border-color: var(--border-hi); color: var(--text); }
+.platform-check input { width: 13px; height: 13px; accent-color: var(--accent); cursor: pointer; }
+.platform-check:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+
+/* Monthly plan action buttons row */
+.monthly-plan-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+
+/* Saved monthly plan rows */
+.plan-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.plan-row:last-child { border-bottom: none; }
+.plan-row-month {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-mono);
+  margin-bottom: 3px;
+}
+.plan-row-goals {
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.plan-row-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.plan-row-actions {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   PHASE 2 — KANBAN REVIEW / APPROVE BUTTONS
+   ============================================================ */
+.kard-action {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.kard-review-btn {
+  font-size: 11.5px;
+  padding: 5px 9px;
+  color: var(--purple);
+  border-color: oklch(72% 0.16 295 / 0.35);
+  background: oklch(72% 0.16 295 / 0.08);
+}
+.kard-review-btn:hover {
+  border-color: var(--purple);
+  background: oklch(72% 0.16 295 / 0.15);
+}
+.kard-approve-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  color: var(--good);
+  border-color: oklch(74% 0.16 152 / 0.35);
+  background: oklch(74% 0.16 152 / 0.1);
+  font-weight: 500;
+}
+.kard-approve-btn:hover {
+  border-color: var(--good);
+  background: oklch(74% 0.16 152 / 0.18);
+}
+.kard-approve-btn svg { color: var(--good); }
+
+/* ============================================================
+   PHASE 2 — ANALYTICS PLATFORM BREAKDOWN TABLE
+   ============================================================ */
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.breakdown-table th {
+  text-align: left;
+  padding: 7px 12px;
+  color: var(--text-faint);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+}
+.breakdown-table td {
+  padding: 8px 12px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border-soft);
+}
+.breakdown-table tr:last-child td { border-bottom: none; }
+.breakdown-table tr:hover td { background: var(--surface); }

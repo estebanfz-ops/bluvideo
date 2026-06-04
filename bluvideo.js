@@ -37,6 +37,7 @@ const ASSIGNEE_NUM = (name) => {
    ----------------------------------------------------------- */
 const State = {
   briefs: [],
+  monthlyPlans: [],
   cards: [],
   metrics: [],
   activity: [],
@@ -60,8 +61,8 @@ const State = {
   save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        briefs: this.briefs, cards: this.cards, metrics: this.metrics,
-        activity: this.activity, settings: this.settings
+        briefs: this.briefs, monthlyPlans: this.monthlyPlans, cards: this.cards,
+        metrics: this.metrics, activity: this.activity, settings: this.settings
       }));
     } catch (e) { console.warn('save failed', e); }
   },
@@ -297,18 +298,15 @@ const DB = {
         .select('*')
         .order('created_at', { ascending: false });
       if (briefs) {
-        State.briefs = briefs.map(b => ({
+        State.monthlyPlans = briefs.map(b => ({
           id: b.id,
-          title: b.goals ? b.goals.slice(0, 60) : 'Brief ' + b.month_year,
-          platform: (b.platforms || [])[0] || 'LinkedIn',
+          monthYear: b.month_year,
+          goals: b.goals || '',
+          topics: (b.topics || []).join('\n'),
           tone: b.tone_notes || '',
-          objective: b.goals || '',
-          audience: '',
-          takeaways: (b.topics || []).join('\n'),
-          cta: '',
+          platforms: b.platforms || [],
           createdAt: new Date(b.created_at).getTime(),
           _supaId: b.id,
-          _monthYear: b.month_year,
         }));
       }
 
@@ -321,8 +319,10 @@ const DB = {
       if (analytics) {
         State.metrics = analytics.map(a => ({
           date: a.week_of,
+          platform: a.platform || '',
           reach: a.reach || 0,
           engage: a.clicks || 0,
+          engagementRate: parseFloat(a.engagement_rate) || 0,
           followers: 0,
           _supaId: a.id,
         }));
@@ -388,28 +388,53 @@ const DB = {
   },
 
   async saveBrief(brief) {
+    // Campaign briefs (single-post prompts) are localStorage-only — no Supabase sync
+    return;
+  },
+
+  async saveMonthlyPlan(plan) {
     const supa = window.BluvideoSupabase && window.BluvideoSupabase.supabase;
     if (!supa || !App.currentUser) return;
 
-    const monthYear = brief._monthYear || new Date().toISOString().slice(0, 7);
     const payload = {
-      month_year: monthYear,
-      goals: brief.objective || brief.title,
-      topics: brief.takeaways ? brief.takeaways.split('\n').filter(Boolean) : [],
-      tone_notes: brief.tone || '',
-      platforms: [brief.platform],
+      month_year: plan.monthYear,
+      goals: plan.goals,
+      topics: plan.topics ? plan.topics.split('\n').filter(Boolean) : [],
+      tone_notes: plan.tone || '',
+      platforms: plan.platforms || [],
       created_by: App.currentUser.id,
     };
 
-    if (brief._supaId) {
-      await supa.from('content_briefs').update(payload).eq('id', brief._supaId);
+    if (plan._supaId) {
+      await supa.from('content_briefs').update(payload).eq('id', plan._supaId);
     } else {
       const { data } = await supa
         .from('content_briefs')
         .upsert(payload, { onConflict: 'month_year' })
         .select().single();
-      if (data) brief._supaId = data.id;
+      if (data) plan._supaId = data.id;
     }
+  },
+
+  async saveAnalytic(metric) {
+    const supa = window.BluvideoSupabase && window.BluvideoSupabase.supabase;
+    if (!supa || !App.currentUser) return;
+
+    const engRate = metric.reach > 0
+      ? parseFloat(((metric.engage / metric.reach) * 100).toFixed(2))
+      : 0;
+    const payload = {
+      week_of: metric.date,
+      platform: metric.platform || 'instagram',
+      reach: metric.reach || 0,
+      engagement_rate: engRate,
+      clicks: metric.engage || 0,
+      created_by: App.currentUser.id,
+    };
+    await supa
+      .from('analytics_logs')
+      .upsert(payload, { onConflict: 'week_of,platform' })
+      .select().single();
   },
 };
 
@@ -431,6 +456,7 @@ const App = {
     this.bindSidebar();
     this.bindTopbar();
     this.bindBriefForm();
+    this.bindMonthlyPlanner();
     this.bindCardModal();
     this.bindPalette();
     this.bindKanbanFilters();
@@ -540,7 +566,7 @@ const App = {
     if (view === 'analytics') this.renderAnalytics();
     if (view === 'kanban') this.renderKanban();
     if (view === 'dashboard') this.renderDashboard();
-    if (view === 'briefs') { this.renderBriefList(); this.renderPreview(); }
+    if (view === 'briefs') { this.renderBriefList(); this.renderPreview(); this.renderMonthlyPlanList(); }
     if (view === 'create') this.renderCreate();
   },
 
@@ -549,6 +575,7 @@ const App = {
     this.renderKanban();
     this.renderBriefList();
     this.renderPreview();
+    this.renderMonthlyPlanList();
     this.renderCalendar();
     this.renderAnalytics();
     this.renderIntegrationStatus();
@@ -1269,6 +1296,33 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       </div>
     `).join('') : `<div class="empty-mini">${svgIcon('chart')}<div>Publish posts to see engagement here.</div></div>`;
 
+    // Platform breakdown
+    const breakdownEl = $('#platform-breakdown');
+    if (breakdownEl) {
+      const byPlatform = {};
+      State.metrics.forEach(m => {
+        if (m.platform && (!byPlatform[m.platform] || m.date > byPlatform[m.platform].date)) {
+          byPlatform[m.platform] = m;
+        }
+      });
+      const entries = Object.entries(byPlatform);
+      if (!entries.length) {
+        breakdownEl.innerHTML = `<div class="empty-mini">${svgIcon('chart')}<div>Log metrics with a platform to see breakdown.</div></div>`;
+      } else {
+        const PLAT_LABEL = { instagram: 'Instagram', linkedin: 'LinkedIn', x_twitter: 'X / Twitter', tiktok: 'TikTok', facebook: 'Facebook' };
+        breakdownEl.innerHTML = `<table class="breakdown-table">
+          <thead><tr><th>Platform</th><th>Reach</th><th>Engagement</th><th>Eng. rate</th><th>Week of</th></tr></thead>
+          <tbody>${entries.map(([platform, m]) => `<tr>
+            <td>${escapeHtml(PLAT_LABEL[platform] || platform)}</td>
+            <td>${compact(m.reach || 0)}</td>
+            <td>${compact(m.engage || 0)}</td>
+            <td>${m.reach ? ((m.engage / m.reach) * 100).toFixed(1) + '%' : '—'}</td>
+            <td>${fmtDate(m.date)}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+      }
+    }
+
     // sync meta hint
     $('#meta-sync-meta').textContent = State.settings.lastMetaSync ? fmtRelative(State.settings.lastMetaSync) : 'Never';
   },
@@ -1301,13 +1355,16 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     const reach = parseInt($('#m-reach').value);
     const engage = parseInt($('#m-engage').value);
     const followers = parseInt($('#m-followers').value);
+    const platform = $('#m-platform').value || 'instagram';
     if (!date || isNaN(reach)) { Toast.show('Need at least date + reach', 'warn'); return; }
-    State.metrics.push({ date, reach, engage: engage || 0, followers: followers || 0 });
+    const metric = { date, platform, reach, engage: engage || 0, followers: followers || 0 };
+    State.metrics.push(metric);
     State.metrics.sort((a, b) => a.date.localeCompare(b.date));
     State.save();
+    DB.saveAnalytic(metric).catch(console.warn);
     App.renderAnalytics();
     $('#m-date').value = $('#m-reach').value = $('#m-engage').value = $('#m-followers').value = '';
-    Toast.show('Snapshot logged', 'success');
+    Toast.show('Snapshot logged to Supabase', 'success');
   },
 
   /* -------- INTEGRATIONS -------- */
@@ -1355,6 +1412,188 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#cloudinary-status').classList.toggle('connected', !!cloudinaryConnected);
     $('#cloudinary-status').textContent = cloudinaryConnected ? 'Connected' : 'Disconnected';
     $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';
+  },
+
+  /* -------- MONTHLY PLANNER -------- */
+  bindMonthlyPlanner() {
+    const today = new Date();
+    $('#mp-month').value = today.toISOString().slice(0, 7);
+    $('#mp-save').addEventListener('click', () => App.saveMonthlyPlan());
+    $('#mp-generate').addEventListener('click', () => App.generateWeekPrompt());
+    $('#mp-copy-prompt').addEventListener('click', () => {
+      copyText($('#mp-prompt-body').textContent, () => Toast.show('Week prompt copied', 'success'));
+    });
+    $('#mp-send-claude').addEventListener('click', () => {
+      copyText($('#mp-prompt-body').textContent, () => {
+        Toast.show('Prompt copied — opening Claude…', 'info');
+        setTimeout(() => window.open('https://claude.ai/new', '_blank', 'noopener'), 250);
+      });
+    });
+  },
+
+  monthlyPlanValues() {
+    return {
+      monthYear: $('#mp-month').value,
+      goals: $('#mp-goals').value.trim(),
+      topics: $('#mp-topics').value.trim(),
+      tone: $('#mp-tone').value.trim(),
+      platforms: Array.from($$('#mp-platforms input:checked')).map(c => c.value),
+    };
+  },
+
+  saveMonthlyPlan() {
+    const v = App.monthlyPlanValues();
+    if (!v.monthYear) { Toast.show('Select a month first', 'warn'); return; }
+    if (!v.goals) { Toast.show('Add month goals first', 'warn'); $('#mp-goals').focus(); return; }
+
+    const existing = State.monthlyPlans.findIndex(p => p.monthYear === v.monthYear);
+    if (existing > -1) {
+      Object.assign(State.monthlyPlans[existing], v);
+      DB.saveMonthlyPlan(State.monthlyPlans[existing]).catch(console.warn);
+    } else {
+      const plan = { id: uid('mp_'), ...v, createdAt: Date.now() };
+      State.monthlyPlans.unshift(plan);
+      DB.saveMonthlyPlan(plan).catch(console.warn);
+    }
+    State.pushActivity(`Saved monthly plan for <span class="em">${v.monthYear}</span>`, 'doc');
+    State.save();
+    App.renderMonthlyPlanList();
+    App.renderDashboard();
+    Toast.show('Monthly plan saved', 'success');
+  },
+
+  generateWeekPrompt() {
+    const v = App.monthlyPlanValues();
+    if (!v.goals && !v.topics) { Toast.show('Fill in goals and topics first', 'warn'); return; }
+
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() + 1);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const weekRange = fmt(weekStart) + ' – ' + fmt(weekEnd) + ', ' + weekEnd.getFullYear();
+
+    const topPosts = State.cards
+      .filter(c => c.status === 'published' && c.content)
+      .slice(0, 3)
+      .map(c => `• ${c.platform}: "${c.title}"`)
+      .join('\n') || 'None yet — this will be the first batch.';
+
+    const platformList = v.platforms.length ? v.platforms.join(', ') : 'LinkedIn, Instagram';
+    const month = v.monthYear || now.toISOString().slice(0, 7);
+
+    const platformLines = v.platforms.slice(0, 4).map((p, i) =>
+      `- ${p}: ${i < 2 ? '2 posts' : '1 post'}`
+    ).join('\n') || '- LinkedIn: 2 posts\n- Instagram: 2 posts\n- X (Twitter): 1 post';
+
+    const prompt = `You are a social media strategist for Bluveo — an AI lab that builds intelligent websites, apps, and automated marketing systems.
+
+MONTH: ${month}
+WEEK: ${weekRange}
+PLATFORMS: ${platformList}
+
+MONTH GOALS:
+${v.goals || '[no goals set]'}
+
+KEY TOPICS THIS MONTH:
+${v.topics || '[no topics set]'}
+
+TONE GUIDANCE:
+${v.tone || 'Confident and plain-spoken. No buzzwords. Lead with insight, not promotion.'}
+
+RECENT TOP PERFORMERS (for reference, do not repeat):
+${topPosts}
+
+---
+
+Generate 7 social media posts for the week of ${weekRange}.
+
+Distribute across platforms:
+${platformLines}
+
+Rules:
+- Each post stands alone (no "as mentioned" or "last week" references)
+- Vary format: some with hooks, some with questions, some with bullet lists
+- LinkedIn: insight-led, professional, no hashtags, max 1500 chars
+- Instagram: visual-forward caption, 3–5 hashtags, conversational
+- X/Twitter: short take, max 280 chars
+- Match the tone guidance exactly — no buzzwords, no exclamation marks
+- Open with a concrete observation or fact, not a question
+
+Return a JSON array:
+[
+  {
+    "platform": "LinkedIn",
+    "day": "Monday",
+    "copy": "...",
+    "visual_prompt": "...",
+    "hook": "..."
+  }
+]`;
+
+    $('#mp-prompt-body').textContent = prompt;
+    $('#mp-prompt-card').style.display = 'block';
+    $('#mp-prompt-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    Toast.show('Week prompt generated', 'success');
+  },
+
+  renderMonthlyPlanList() {
+    const el = $('#mp-plans-list');
+    if (!el) return;
+    const plans = State.monthlyPlans;
+    const countEl = $('#mp-plans-count');
+    if (countEl) countEl.innerHTML = `<span class="chip-dot"></span>${plans.length} plan${plans.length === 1 ? '' : 's'}`;
+    if (!plans.length) {
+      el.innerHTML = `<div class="empty-mini">${svgIcon('doc')}<div>No monthly plans saved yet. Fill in the form above and hit Save plan.</div></div>`;
+      return;
+    }
+    el.innerHTML = plans.map(p => `
+      <div class="plan-row">
+        <div>
+          <div class="plan-row-month">${escapeHtml(p.monthYear || '')}</div>
+          <div class="plan-row-goals">${escapeHtml((p.goals || '').slice(0, 100))}${(p.goals || '').length > 100 ? '…' : ''}</div>
+          ${p.platforms && p.platforms.length ? `<div class="plan-row-platforms">${p.platforms.map(pl => `<span class="chip" data-tone="${platformTone(pl)}" style="margin-right:4px;"><span class="chip-dot"></span>${pl}</span>`).join('')}</div>` : ''}
+        </div>
+        <div class="plan-row-actions">
+          <button class="btn" data-load-plan="${p.id}">
+            ${svgIcon('edit')} Load
+          </button>
+          <button class="btn btn-ghost btn-danger" data-del-plan="${p.id}" title="Delete">${svgIcon('trash')}</button>
+        </div>
+      </div>
+    `).join('');
+    el.querySelectorAll('[data-load-plan]').forEach(btn => {
+      btn.addEventListener('click', () => App.loadMonthlyPlan(btn.dataset.loadPlan));
+    });
+    el.querySelectorAll('[data-del-plan]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = State.monthlyPlans.findIndex(p => p.id === btn.dataset.delPlan);
+        if (idx >= 0) {
+          const removed = State.monthlyPlans.splice(idx, 1)[0];
+          State.save();
+          App.renderMonthlyPlanList();
+          Toast.show('Plan deleted', 'info', {
+            label: 'Undo',
+            handler: () => { State.monthlyPlans.splice(idx, 0, removed); State.save(); App.renderMonthlyPlanList(); }
+          });
+        }
+      });
+    });
+  },
+
+  loadMonthlyPlan(id) {
+    const p = State.monthlyPlans.find(x => x.id === id);
+    if (!p) return;
+    if (p.monthYear) $('#mp-month').value = p.monthYear;
+    $('#mp-goals').value = p.goals || '';
+    $('#mp-topics').value = p.topics || '';
+    $('#mp-tone').value = p.tone || '';
+    if (p.platforms) {
+      $$('#mp-platforms input').forEach(cb => { cb.checked = p.platforms.includes(cb.value); });
+    }
+    Toast.show('Plan loaded into form', 'info');
+    $('#mp-month').scrollIntoView({ behavior: 'smooth', block: 'center' });
   },
 
   /* -------- PALETTE bind only -------- */
@@ -1478,6 +1717,11 @@ function renderCard(c) {
   if (c.status === 'drafting' || c.status === 'ideation') {
     action = `<div class="kard-action">
       <button class="btn brand-claude" data-claude="${c.id}">${svgIcon('cmd')} Open in Claude</button>
+      <button class="btn kard-review-btn" data-to-review="${c.id}" title="Move to In Review">${svgIcon('eye')} Review</button>
+    </div>`;
+  } else if (c.status === 'review') {
+    action = `<div class="kard-action">
+      <button class="btn kard-approve-btn" data-approve="${c.id}">${svgIcon('check')} Approve</button>
     </div>`;
   } else if (c.status === 'approved' || c.status === 'scheduled') {
     action = `<div class="kard-action">
@@ -1560,6 +1804,32 @@ function setupKanbanDnd() {
     const c = State.cards.find(x => x.id === b.dataset.buffer);
     if (!c || !c.content) { Toast.show('Add final copy on the card first', 'warn'); return; }
     App.openBufferPush(c);
+  }));
+
+  board.querySelectorAll('[data-to-review]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const c = State.cards.find(x => x.id === b.dataset.toReview);
+    if (!c) return;
+    c.status = 'review';
+    State.pushActivity(`Sent "<span class="em">${escapeHtml(c.title)}</span>" to In Review`, 'eye');
+    State.save();
+    DB.saveCard(c).catch(console.warn);
+    App.renderKanban();
+    App.renderDashboard();
+    Toast.show('Moved to In Review', 'info');
+  }));
+
+  board.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const c = State.cards.find(x => x.id === b.dataset.approve);
+    if (!c) return;
+    c.status = 'approved';
+    State.pushActivity(`Approved "<span class="em">${escapeHtml(c.title)}</span>"`, 'check');
+    State.save();
+    DB.saveCard(c).catch(console.warn);
+    App.renderKanban();
+    App.renderDashboard();
+    Toast.show('Post approved ✓', 'success');
   }));
 }
 

@@ -198,6 +198,85 @@
           </div>
         </div>
 
+        <!-- Monthly Content Planner -->
+        <div class="card monthly-plan-card" style="margin-bottom: 18px;">
+          <div class="card-head">
+            <div class="card-title">Monthly content plan</div>
+            <span class="chip" data-tone="blue" id="mp-sync-chip"><span class="chip-dot"></span>Supabase sync</span>
+          </div>
+          <div class="card-body">
+            <div class="row row-2">
+              <div class="field">
+                <label class="label" for="mp-month">Month</label>
+                <input class="input" type="month" id="mp-month" />
+              </div>
+              <div class="field">
+                <label class="label">Platforms</label>
+                <div class="platform-checks" id="mp-platforms">
+                  <label class="platform-check"><input type="checkbox" value="LinkedIn" checked /><span>LinkedIn</span></label>
+                  <label class="platform-check"><input type="checkbox" value="Instagram" /><span>Instagram</span></label>
+                  <label class="platform-check"><input type="checkbox" value="X (Twitter)" /><span>X</span></label>
+                  <label class="platform-check"><input type="checkbox" value="TikTok" /><span>TikTok</span></label>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label class="label" for="mp-goals">Month goals <span class="hint">what should this month achieve?</span></label>
+              <textarea class="textarea" id="mp-goals" placeholder="Drive 20 demo requests. Grow LinkedIn by 5%. Launch the AI lab case study." style="min-height:72px;"></textarea>
+            </div>
+            <div class="row row-2">
+              <div class="field">
+                <label class="label" for="mp-topics">Key topics &amp; campaigns <span class="hint">one per line</span></label>
+                <textarea class="textarea" id="mp-topics" placeholder="AI tools for small teams&#10;Q3 case study launch&#10;Team behind Bluveo&#10;Service awareness" style="min-height:90px;"></textarea>
+              </div>
+              <div class="field">
+                <label class="label" for="mp-tone">Tone guidance this month</label>
+                <textarea class="textarea" id="mp-tone" placeholder="Confident and plain-spoken. No buzzwords. Lead with insight, not promotion." style="min-height:90px;"></textarea>
+              </div>
+            </div>
+            <div class="monthly-plan-actions">
+              <button class="btn" id="mp-save">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+                Save plan
+              </button>
+              <button class="btn btn-primary" id="mp-generate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
+                Generate week prompt
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generated week prompt output (hidden until generated) -->
+        <div class="card" id="mp-prompt-card" style="display:none; margin-bottom:18px;">
+          <div class="card-head">
+            <div class="card-title">Week generation prompt</div>
+            <span class="chip" data-tone="green"><span class="chip-dot"></span>Ready for Claude</span>
+          </div>
+          <div class="card-body">
+            <div class="preview-body" id="mp-prompt-body" style="max-height:340px; overflow-y:auto; font-size:12.5px;"></div>
+          </div>
+          <div class="preview-actions" style="padding: 12px 20px 16px; border-top: 1px solid var(--border);">
+            <button class="btn" id="mp-copy-prompt">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+              Copy prompt
+            </button>
+            <button class="btn btn-primary" id="mp-send-claude">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
+              Send to Claude
+            </button>
+          </div>
+        </div>
+
+        <!-- Saved monthly plans list -->
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head">
+            <div class="card-title">Saved monthly plans</div>
+            <span class="chip" data-tone="gray" id="mp-plans-count"><span class="chip-dot"></span>0 plans</span>
+          </div>
+          <div id="mp-plans-list"></div>
+        </div>
+
         <div class="brief-layout">
           <div class="card brief-form-card">
             <div class="card-head">
@@ -464,6 +543,15 @@
           </div>
         </div>
 
+        <div class="card" style="margin-bottom: 18px;">
+          <div class="card-head">
+            <div class="card-title">Platform breakdown</div>
+            <span class="chip" data-tone="gray"><span class="chip-dot"></span>latest per platform</span>
+          </div>
+          <div class="card-body" id="platform-breakdown">
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-head">
             <div class="card-title">Log a weekly snapshot</div>
@@ -474,6 +562,16 @@
               <div>
                 <label class="label">Week of</label>
                 <input class="input" type="date" id="m-date" />
+              </div>
+              <div>
+                <label class="label">Platform</label>
+                <select class="select" id="m-platform">
+                  <option value="instagram">Instagram</option>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="x_twitter">X / Twitter</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="facebook">Facebook</option>
+                </select>
               </div>
               <div>
                 <label class="label">Reach</label>

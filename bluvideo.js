@@ -1385,6 +1385,12 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       ],
       image: [
         {
+          key: 'bloom', name: 'Bloom', tag: 'Free tier', url: 'https://bloom.so',
+          logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12M12 12C12 12 8 10 8 6a4 4 0 0 1 8 0c0 4-4 6-4 6z"/><path d="M12 12c0 0-4.5 1.5-6 5M12 12c0 0 4.5 1.5 6 5"/></svg>`,
+          desc: 'Brand-aware AI image generation. Generate social visuals, ad creatives, and product shots trained on your brand kit.',
+          bullets: ['Reads your <strong>brand colors & fonts</strong>', 'Generate ads, carousels, story covers', 'Upload to Cloudinary → paste URL into card']
+        },
+        {
           key: 'canva', name: 'Canva (graphics)', tag: 'Free', url: 'https://www.canva.com/create/social-media-graphics/',
           logo: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5" fill="var(--bg-elev)"/></svg>`,
           desc: 'Quote graphics, carousel slides, and stat cards in 5 minutes. Brand kit keeps it on-tone.',

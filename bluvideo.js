@@ -45,7 +45,7 @@ const State = {
   cards: [],
   metrics: [],
   activity: [],
-  settings: { metaPageId: '', metaToken: '', supaUrl: '', supaKey: '', lastMetaSync: null, cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
+  settings: { metaPageId: '', metaToken: '', lastMetaSync: null, cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
 
   load() {
     try {
@@ -1614,8 +1614,6 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   bindIntegrations() {
     $('#set-meta-page').value = State.settings.metaPageId || '';
     $('#set-meta-token').value = State.settings.metaToken || '';
-    $('#set-supa-url').value = State.settings.supaUrl || '';
-    $('#set-supa-key').value = State.settings.supaKey || '';
     $('#set-cloud-name').value = State.settings.cloudinaryCloud || '';
     $('#set-cloud-preset').value = State.settings.cloudinaryPreset || '';
     $('#meta-form').addEventListener('submit', (e) => {
@@ -1625,14 +1623,6 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       State.save();
       App.renderIntegrationStatus();
       Toast.show('Meta keys saved (stored locally)', 'success');
-    });
-    $('#supa-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      State.settings.supaUrl = $('#set-supa-url').value;
-      State.settings.supaKey = $('#set-supa-key').value;
-      State.save();
-      App.renderIntegrationStatus();
-      Toast.show('Supabase keys saved', 'success');
     });
     $('#cloudinary-form').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1646,16 +1636,14 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
 
   renderIntegrationStatus() {
     const metaConnected       = State.settings.metaToken && State.settings.metaPageId;
-    const supaConnected       = State.settings.supaUrl && State.settings.supaKey;
+    const supaConnected       = !!window.BluvideoSupabase?.supabase;
     const cloudinaryConnected = State.settings.cloudinaryCloud && State.settings.cloudinaryPreset;
     const gcalConnected       = !!(State.settings.gcalCalendarId && State.settings.gcalToken);
     $('#meta-status').classList.toggle('connected', !!metaConnected);
     $('#meta-status').textContent = metaConnected ? 'Connected' : 'Disconnected';
-    $('#supa-status').classList.toggle('connected', !!supaConnected);
-    $('#supa-status').textContent = supaConnected ? 'Connected' : 'Disconnected';
     $('#cloudinary-status').classList.toggle('connected', !!cloudinaryConnected);
     $('#cloudinary-status').textContent = cloudinaryConnected ? 'Connected' : 'Disconnected';
-    $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';
+    if ($('#ws-status-txt')) $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';
     if ($('#gcal-status')) {
       $('#gcal-status').classList.toggle('connected', gcalConnected);
       $('#gcal-status').textContent = gcalConnected ? `Connected · ${State.settings.gcalCalendarName || 'calendar'}` : 'Disconnected';

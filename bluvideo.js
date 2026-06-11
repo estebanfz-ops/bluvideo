@@ -1648,6 +1648,11 @@ const App = {
 
     const prompt = `You are a social media strategist for Bluveo — an AI lab that builds intelligent websites, apps, and automated marketing systems.
 
+USE YOUR PLUGINS TO BUILD THIS OUTPUT:
+- Use the MARKETING plugin to research angles, sharpen the hooks and copy, and align each post with the week goals and audience.
+- Use the DESIGN plugin to define the visual direction for every "graphic" and "carousel" post (layout, composition, color, and slide breakdown for carousels).
+- Run both plugins BEFORE writing the final JSON, then fold their results into the "copy" and "visual_prompt" fields. Return only the final JSON array.
+
 WEEK: ${week} (${weekRange})
 PLATFORMS: ${platformList}
 
@@ -1681,6 +1686,7 @@ Rules:
 - LinkedIn: insight-led, professional, no hashtags, max 1500 chars
 - Instagram: visual-forward caption, 3–5 hashtags, conversational
 - X/Twitter: threads open with a strong hook, max 280 chars per tweet
+- TikTok: short hook-driven caption, 1–3 hashtags; put the video concept/script beats in "visual_prompt"
 - Match the tone guidance exactly — no buzzwords, no exclamation marks
 - Open with a concrete observation or fact, not a question
 - Assign day: spread posts across Mon–Fri, 2 posts/day per platform

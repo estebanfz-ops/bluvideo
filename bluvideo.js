@@ -41,17 +41,19 @@ const ASSIGNEE_NUM = (name) => {
    ----------------------------------------------------------- */
 const State = {
   briefs: [],
-  monthlyPlans: [],
+  weeklyPlans: [],
   cards: [],
   metrics: [],
   activity: [],
-  settings: { metaPageId: '', metaToken: '', instagramId: '', lastMetaSync: null, bufferProfileId: '', cloudinaryCloud: '', cloudinaryPreset: '', gcalClientId: '', gcalCalendarId: '', gcalCalendarName: '', gcalToken: '' },
+  settings: { metaPageId: '', metaToken: '', instagramId: '', lastMetaSync: null, bufferProfileId: '' },
 
   load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
+        // migrate old monthlyPlans key
+        if (parsed.monthlyPlans && !parsed.weeklyPlans) parsed.weeklyPlans = parsed.monthlyPlans;
         Object.assign(this, parsed);
       } else {
         seed(this);
@@ -65,7 +67,7 @@ const State = {
   save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        briefs: this.briefs, monthlyPlans: this.monthlyPlans, cards: this.cards,
+        briefs: this.briefs, weeklyPlans: this.weeklyPlans, cards: this.cards,
         metrics: this.metrics, activity: this.activity, settings: this.settings
       }));
     } catch (e) { devWarn('save failed', e); }
@@ -244,57 +246,6 @@ function trapFocus(container) {
 }
 
 /* -----------------------------------------------------------
-   CLOUDINARY UPLOAD HELPER
-   ----------------------------------------------------------- */
-const Cloudinary = {
-  get cloud()  { return State.settings.cloudinaryCloud  || ''; },
-  get preset() { return State.settings.cloudinaryPreset || ''; },
-  isReady() { return !!(this.cloud && this.preset && window.cloudinary); },
-  upload(onSuccess) {
-    if (!this.isReady()) {
-      Toast.show('Set Cloudinary cloud name & preset in Integrations', 'warn', {
-        label: 'Open', handler: () => App.switchView('settings')
-      });
-      return;
-    }
-    window.cloudinary.openUploadWidget({
-      cloudName: this.cloud,
-      uploadPreset: this.preset,
-      sources: ['local', 'url', 'camera'],
-      multiple: true,
-      maxFiles: 10,
-      resourceType: 'auto',
-    }, (err, result) => {
-      if (!err && result && result.event === 'success') onSuccess(result.info.secure_url);
-    });
-  }
-};
-
-function renderMediaThumbs(urls) {
-  const el = $('#c-media-thumbs');
-  if (!el) return;
-  if (!urls || !urls.length) { el.innerHTML = ''; return; }
-  el.innerHTML = urls.map((url, i) => {
-    const isVideo = /\.(mp4|mov|webm|avi)(\?|$)/i.test(url);
-    return `<div class="media-thumb">
-      ${isVideo
-        ? `<div class="media-thumb-video">${svgIcon('send')}<span>Video</span></div>`
-        : `<img src="${escapeHtml(url)}" alt="" loading="lazy" />`
-      }
-      <button class="media-thumb-del" data-idx="${i}" title="Remove" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
-      </button>
-    </div>`;
-  }).join('');
-  el.querySelectorAll('.media-thumb-del').forEach(btn => {
-    btn.addEventListener('click', () => {
-      App._mediaUrls.splice(+btn.dataset.idx, 1);
-      renderMediaThumbs(App._mediaUrls);
-    });
-  });
-}
-
-/* -----------------------------------------------------------
    DATA ACCESS LAYER (Supabase ↔ State bridge)
    ----------------------------------------------------------- */
 const DB = {
@@ -337,9 +288,9 @@ const DB = {
         .select('*')
         .order('created_at', { ascending: false });
       if (briefs) {
-        State.monthlyPlans = briefs.map(b => ({
+        State.weeklyPlans = briefs.map(b => ({
           id: b.id,
-          monthYear: b.month_year,
+          weekStart: b.month_year,
           goals: b.goals || '',
           topics: (b.topics || []).join('\n'),
           tone: b.tone_notes || '',
@@ -434,12 +385,12 @@ const DB = {
     return;
   },
 
-  async saveMonthlyPlan(plan) {
+  async saveWeeklyPlan(plan) {
     const supa = window.BluvideoSupabase && window.BluvideoSupabase.supabase;
     if (!supa || !App.currentUser) return;
 
     const payload = {
-      month_year: plan.monthYear,
+      month_year: plan.weekStart,
       goals: plan.goals,
       topics: plan.topics ? plan.topics.split('\n').filter(Boolean) : [],
       tone_notes: plan.tone || '',
@@ -498,8 +449,7 @@ const App = {
     this.bindGlobal();
     this.bindSidebar();
     this.bindTopbar();
-    this.bindBriefForm();
-    this.bindMonthlyPlanner();
+    this.bindWeeklyPlanner();
     this.bindCardModal();
     this.bindScheduleModal();
     this.bindPalette();
@@ -507,7 +457,6 @@ const App = {
     this.bindCalendarNav();
     this.bindAnalytics();
     this.bindIntegrations();
-    this.bindGoogleCalendar();
     this.applyTheme(localStorage.getItem('bluVideoOS_theme') || 'dark');
     this.renderAll();
     this.switchView('dashboard');
@@ -614,7 +563,7 @@ const App = {
     if (view === 'analytics') this.renderAnalytics();
     if (view === 'kanban') this.renderKanban();
     if (view === 'dashboard') this.renderDashboard();
-    if (view === 'briefs') { this.renderBriefList(); this.renderPreview(); this.renderMonthlyPlanList(); }
+    if (view === 'briefs') { this.renderBriefList(); this.renderWeeklyPlanList(); }
     if (view === 'create') this.renderCreate();
   },
 
@@ -622,8 +571,7 @@ const App = {
     this.renderDashboard();
     this.renderKanban();
     this.renderBriefList();
-    this.renderPreview();
-    this.renderMonthlyPlanList();
+    this.renderWeeklyPlanList();
     this.renderCalendar();
     this.renderAnalytics();
     this.renderIntegrationStatus();
@@ -642,8 +590,6 @@ const App = {
       if (modKey && e.key.toLowerCase() === 'k') { e.preventDefault(); Palette.open(); return; }
       if (modKey && e.key === '\\') { e.preventDefault(); $('#app').classList.toggle('sidebar-collapsed'); return; }
       if (modKey && e.key.toLowerCase() === 'n') { e.preventDefault(); App.openCardModal(); return; }
-      if (modKey && e.key.toLowerCase() === 's' && App.currentView === 'briefs') { e.preventDefault(); App.saveBrief(); return; }
-      if (modKey && e.shiftKey && e.key.toLowerCase() === 'c' && App.currentView === 'briefs') { e.preventDefault(); App.copyPrompt(); return; }
       if (modKey && e.key === 'Enter' && $('#card-scrim').classList.contains('open')) { e.preventDefault(); App.saveCard(); return; }
 
       if (e.key === 'Escape') {
@@ -685,10 +631,6 @@ const App = {
       else if (act === 'close-card-modal') App.closeCardModal();
       else if (act === 'save-card') App.saveCard();
       else if (act === 'delete-card') App.deleteCard();
-      else if (act === 'brief-save') App.saveBrief();
-      else if (act === 'brief-reset') App.resetBrief();
-      else if (act === 'copy-prompt') App.copyPrompt();
-      else if (act === 'send-to-claude') App.sendToClaude();
     });
   },
 
@@ -805,137 +747,6 @@ const App = {
   },
 
   /* -------- BRIEFING ENGINE -------- */
-  briefMode: 'copy',
-  bindBriefForm() {
-    ['b-title','b-platform','b-tone','b-objective','b-audience','b-takeaways','b-cta'].forEach(id => {
-      const el = $('#' + id);
-      el.addEventListener('input', () => App.renderPreview());
-      el.addEventListener('change', () => App.renderPreview());
-    });
-    $$('.preview-tab').forEach(t => {
-      t.addEventListener('click', () => {
-        App.briefMode = t.dataset.tab;
-        $$('.preview-tab').forEach(x => x.classList.toggle('active', x === t));
-        App.renderPreview();
-      });
-    });
-  },
-
-  briefValues() {
-    return {
-      title: $('#b-title').value.trim(),
-      platform: $('#b-platform').value,
-      tone: $('#b-tone').value,
-      objective: $('#b-objective').value.trim(),
-      audience: $('#b-audience').value.trim(),
-      takeaways: $('#b-takeaways').value.trim(),
-      cta: $('#b-cta').value.trim(),
-    };
-  },
-
-  renderPreview() {
-    const v = App.briefValues();
-    const ph = (s, label) => s ? escapeHtml(s) : `<span class="ph">[${label}]</span>`;
-    let body = '';
-
-    if (App.briefMode === 'copy') {
-      body = `<span class="hl">SYSTEM</span>
-You are an expert social media copywriter for a small content team.
-Write a single ${v.platform || '[platform]'} post in the voice "${ph(v.tone, 'tone')}".
-
-<span class="hl">CAMPAIGN</span>
-${ph(v.title, 'campaign title')}
-
-<span class="hl">OBJECTIVE</span>
-${ph(v.objective, 'one-sentence goal')}
-
-<span class="hl">AUDIENCE</span>
-${ph(v.audience, 'who is this for')}
-
-<span class="hl">KEY TAKEAWAYS</span>
-${ph(v.takeaways, 'bulleted takeaways')}
-
-<span class="hl">CALL TO ACTION</span>
-${ph(v.cta, 'what should the reader do')}
-
-<span class="hl">CONSTRAINTS</span>
-- No emojis unless the tone calls for them.
-- No exclamation marks.
-- Open with a concrete observation, not a question.
-- End with the CTA on its own line.
-
-Return three variants, labelled A / B / C, separated by ---.`;
-    } else if (App.briefMode === 'visual') {
-      body = `<span class="hl">SYSTEM</span>
-You are an art director briefing a designer for a ${v.platform || '[platform]'} asset.
-
-<span class="hl">CAMPAIGN</span>
-${ph(v.title, 'campaign title')}
-
-<span class="hl">AUDIENCE & FEEL</span>
-${ph(v.audience, 'audience')}
-Tone: ${ph(v.tone, 'tone')}
-
-<span class="hl">CORE IDEA</span>
-${ph(v.objective, 'what the visual must communicate')}
-
-<span class="hl">DELIVERABLE</span>
-- Format: ${platformAspect(v.platform)}
-- 1 hero composition + 2 alternates
-- Type-led if no strong image, photo-led if there is
-
-<span class="hl">DO / DON'T</span>
-DO: bold blue accent, restrained type, generous negative space
-DON'T: stock photo clichés, drop shadows, more than two type sizes`;
-    } else {
-      body = `<span class="hl">THREAD STARTER · ${v.platform || '[platform]'}</span>
-
-Hook (1/):
-${v.objective ? '— ' + escapeHtml(v.objective.split('.')[0]) + '.' : '<span class="ph">[opening line — one observation, not a question]</span>'}
-
-Body beats:
-${v.takeaways ? escapeHtml(v.takeaways).split('\n').map((l, i) => (i + 2) + '/ ' + l.replace(/^[•\-\*]\s*/, '')).join('\n') : '<span class="ph">[3-5 beats from your takeaways, one per post]</span>'}
-
-Close:
-${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
-    }
-
-    $('#preview-body').innerHTML = body;
-    const text = $('#preview-body').textContent;
-    $('#preview-meta').textContent = `${text.length} chars · ${text.split('\n').length} lines`;
-  },
-
-  saveBrief() {
-    const v = App.briefValues();
-    if (!v.title) { Toast.show('Add a campaign title first', 'warn'); $('#b-title').focus(); return; }
-    const brief = { id: uid('b_'), ...v, createdAt: Date.now() };
-    State.briefs.unshift(brief);
-    State.pushActivity(`Saved brief "<span class="em">${escapeHtml(v.title)}</span>"`, 'doc');
-    State.save();
-    DB.saveBrief(brief).catch(devWarn);
-    App.renderBriefList();
-    App.renderDashboard();
-    Toast.show('Brief saved to library', 'success');
-  },
-
-  resetBrief() {
-    ['b-title','b-objective','b-audience','b-takeaways','b-cta'].forEach(id => $('#' + id).value = '');
-    App.renderPreview();
-  },
-
-  copyPrompt() {
-    const text = $('#preview-body').textContent;
-    copyText(text, () => Toast.show('Prompt copied to clipboard', 'success'));
-  },
-
-  sendToClaude() {
-    const text = $('#preview-body').textContent;
-    copyText(text, () => {
-      Toast.show('Prompt copied — opening Claude…', 'info');
-      setTimeout(() => window.open('https://claude.ai/new', '_blank', 'noopener'), 250);
-    });
-  },
-
   renderBriefList() {
     const list = $('#brief-list');
     $('#brief-count-chip').innerHTML = `<span class="chip-dot"></span>${State.briefs.length} brief${State.briefs.length === 1 ? '' : 's'}`;
@@ -970,22 +781,19 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   loadBrief(id) {
     const b = State.briefs.find(x => x.id === id);
     if (!b) return;
-    $('#b-title').value = b.title || '';
-    $('#b-platform').value = b.platform || 'LinkedIn';
-    $('#b-tone').value = b.tone || 'Authoritative & calm';
-    $('#b-objective').value = b.objective || '';
-    $('#b-audience').value = b.audience || '';
-    $('#b-takeaways').value = b.takeaways || '';
-    $('#b-cta').value = b.cta || '';
-    App.renderPreview();
-    Toast.show('Brief loaded into form', 'info');
-    $('#b-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const text = [
+      `Campaign: ${b.title}`,
+      `Platform: ${b.platform}`,
+      `Tone: ${b.tone}`,
+      `Objective: ${b.objective}`,
+      `Audience: ${b.audience}`,
+      `Key takeaways:\n${b.takeaways}`,
+      `CTA: ${b.cta}`,
+    ].join('\n\n');
+    copyText(text, () => Toast.show('Brief copied to clipboard', 'success'));
   },
   copyBrief(id) {
-    const b = State.briefs.find(x => x.id === id);
-    if (!b) return;
     App.loadBrief(id);
-    setTimeout(() => App.copyPrompt(), 100);
   },
   deleteBrief(id) {
     const idx = State.briefs.findIndex(x => x.id === id);
@@ -1109,14 +917,6 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       window.open('https://www.trybloom.ai/', '_blank', 'noopener');
       Toast.show('Visual prompt copied — paste it in Bloom', 'info');
     });
-
-    $('#c-upload-btn').addEventListener('click', () => {
-      Cloudinary.upload((url) => {
-        App._mediaUrls = App._mediaUrls || [];
-        App._mediaUrls.push(url);
-        renderMediaThumbs(App._mediaUrls);
-      });
-    });
   },
 
   openCardModal(id) {
@@ -1130,10 +930,9 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     $('#c-date').value = card ? (card.date || '') : '';
     $('#c-figma').value = card ? (card.figma || '') : '';
     $('#c-canva').value = card ? (card.canva || '') : '';
+    $('#c-media-url').value = card ? (card.mediaUrl || '') : '';
     $('#c-visual-prompt').value = card ? (card.visualPrompt || '') : '';
     $('#c-content').value = card ? (card.content || '') : '';
-    App._mediaUrls = card ? [...(card.mediaUrls || [])] : [];
-    renderMediaThumbs(App._mediaUrls);
     $('#c-delete').style.display = card ? 'inline-flex' : 'none';
     $('#c-meta').textContent = card ? `Created ${fmtRelative(card.createdAt)}` : 'New task';
     $('#card-scrim').classList.add('open');
@@ -1289,7 +1088,6 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     );
     State.save();
     DB.saveCard(c).catch(devWarn);
-    if (State.settings.gcalCalendarId && State.settings.gcalToken) GCal.createEvent(c);
     this.closeScheduleModal();
     this.renderKanban();
     this.renderDashboard();
@@ -1347,7 +1145,8 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       canva: $('#c-canva').value,
       content: $('#c-content').value,
       visualPrompt: $('#c-visual-prompt').value.trim(),
-      mediaUrls: App._mediaUrls || [],
+      mediaUrl: ($('#c-media-url').value || '').trim(),
+      mediaUrls: ($('#c-media-url').value || '').trim() ? [($('#c-media-url').value || '').trim()] : [],
     };
     if (App.cardEditingId) {
       const i = State.cards.findIndex(c => c.id === App.cardEditingId);
@@ -1493,7 +1292,6 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
   /* -------- ANALYTICS -------- */
   bindAnalytics() {
     $('#meta-sync-btn').addEventListener('click', () => App.metaSync());
-    $('#m-add').addEventListener('click', () => App.addMetric());
   },
 
   renderAnalytics() {
@@ -1650,31 +1448,12 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     Toast.show(`Synced ${synced}${errNote}`, errors.length ? 'warn' : 'success');
   },
 
-  addMetric() {
-    const date = $('#m-date').value;
-    const reach = parseInt($('#m-reach').value);
-    const engage = parseInt($('#m-engage').value);
-    const followers = parseInt($('#m-followers').value);
-    const platform = $('#m-platform').value || 'instagram';
-    if (!date || isNaN(reach)) { Toast.show('Need at least date + reach', 'warn'); return; }
-    const metric = { date, platform, reach, engage: engage || 0, followers: followers || 0 };
-    State.metrics.push(metric);
-    State.metrics.sort((a, b) => a.date.localeCompare(b.date));
-    State.save();
-    DB.saveAnalytic(metric).catch(devWarn);
-    App.renderAnalytics();
-    $('#m-date').value = $('#m-reach').value = $('#m-engage').value = $('#m-followers').value = '';
-    Toast.show('Snapshot logged to Supabase', 'success');
-  },
-
   /* -------- INTEGRATIONS -------- */
   bindIntegrations() {
     $('#set-meta-page').value  = State.settings.metaPageId   || '';
     $('#set-meta-ig').value    = State.settings.instagramId  || '';
     $('#set-meta-token').value = State.settings.metaToken    || '';
     $('#set-buffer-profile').value = State.settings.bufferProfileId || '';
-    $('#set-cloud-name').value = State.settings.cloudinaryCloud || '';
-    $('#set-cloud-preset').value = State.settings.cloudinaryPreset || '';
     $('#meta-form').addEventListener('submit', (e) => {
       e.preventDefault();
       State.settings.metaPageId  = $('#set-meta-page').value.trim();
@@ -1694,85 +1473,32 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       App.renderIntegrationStatus();
       Toast.show('Buffer profile saved', 'success');
     });
-    $('#cloudinary-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      State.settings.cloudinaryCloud  = $('#set-cloud-name').value.trim();
-      State.settings.cloudinaryPreset = $('#set-cloud-preset').value.trim();
-      State.save();
-      App.renderIntegrationStatus();
-      Toast.show('Cloudinary config saved', 'success');
-    });
+    App.renderIntegrationStatus();
   },
 
   renderIntegrationStatus() {
-    const metaConnected       = State.settings.metaToken && (State.settings.metaPageId || State.settings.instagramId);
-    const supaConnected       = !!window.BluvideoSupabase?.supabase;
-    const bufferConfigured    = !!State.settings.bufferProfileId;
-    const cloudinaryConnected = State.settings.cloudinaryCloud && State.settings.cloudinaryPreset;
-    const gcalConnected       = !!(State.settings.gcalCalendarId && State.settings.gcalToken);
+    const metaConnected    = State.settings.metaToken && (State.settings.metaPageId || State.settings.instagramId);
+    const supaConnected    = !!window.BluvideoSupabase?.supabase;
+    const bufferConfigured = !!State.settings.bufferProfileId;
     $('#meta-status').classList.toggle('connected', !!metaConnected);
     $('#meta-status').textContent = metaConnected ? 'Connected' : 'Disconnected';
     if ($('#buffer-status')) {
       $('#buffer-status').classList.toggle('connected', bufferConfigured);
       $('#buffer-status').textContent = bufferConfigured ? 'Configured' : 'Not configured';
     }
-    $('#cloudinary-status').classList.toggle('connected', !!cloudinaryConnected);
-    $('#cloudinary-status').textContent = cloudinaryConnected ? 'Connected' : 'Disconnected';
     if ($('#ws-status-txt')) $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';
-    if ($('#gcal-status')) {
-      $('#gcal-status').classList.toggle('connected', gcalConnected);
-      $('#gcal-status').textContent = gcalConnected ? `Connected · ${State.settings.gcalCalendarName || 'calendar'}` : 'Disconnected';
-      $('#gcal-connected-info').style.display = gcalConnected ? 'block' : 'none';
-      $('#gcal-form').style.display = gcalConnected ? 'none' : 'block';
-    }
   },
 
-  /* -------- GOOGLE CALENDAR -------- */
-  _gcalTokenClient: null,
-
-  bindGoogleCalendar() {
-    $('#set-gcal-client-id').value = State.settings.gcalClientId || '';
-
-    $('#gcal-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const clientId = $('#set-gcal-client-id').value.trim();
-      if (!clientId) { Toast.show('Paste your Google OAuth Client ID first', 'warn'); return; }
-      State.settings.gcalClientId = clientId;
-      State.save();
-      GCal.connect(clientId);
-    });
-
-    const disconnectFn = () => {
-      State.settings.gcalToken = '';
-      State.settings.gcalCalendarId = '';
-      State.settings.gcalCalendarName = '';
-      State.save();
-      App.renderIntegrationStatus();
-      $('#gcal-picker').style.display = 'none';
-      Toast.show('Google Calendar disconnected', 'info');
-    };
-    $('#gcal-disconnect').addEventListener('click', disconnectFn);
-    $('#gcal-disconnect-2').addEventListener('click', disconnectFn);
-
-    $('#gcal-save-calendar').addEventListener('click', () => {
-      const sel = $('#gcal-calendar-select');
-      if (!sel.value) return;
-      State.settings.gcalCalendarId = sel.value;
-      State.settings.gcalCalendarName = sel.options[sel.selectedIndex].text;
-      State.save();
-      $('#gcal-picker').style.display = 'none';
-      App.renderIntegrationStatus();
-      Toast.show(`Calendar "${State.settings.gcalCalendarName}" saved`, 'success');
-    });
-
-    App.renderIntegrationStatus();
-  },
-
-  /* -------- MONTHLY PLANNER -------- */
-  bindMonthlyPlanner() {
+  /* -------- WEEKLY PLANNER -------- */
+  bindWeeklyPlanner() {
     const today = new Date();
-    $('#mp-month').value = today.toISOString().slice(0, 7);
-    $('#mp-save').addEventListener('click', () => App.saveMonthlyPlan());
+    const yr = today.getFullYear();
+    const jan4 = new Date(yr, 0, 4);
+    const dayOfWeek = (jan4.getDay() + 6) % 7;
+    const startOfWeek1 = new Date(jan4.getTime() - dayOfWeek * 86400000);
+    const weekNum = Math.floor((today - startOfWeek1) / (7 * 86400000)) + 1;
+    $('#mp-week').value = `${yr}-W${String(weekNum).padStart(2, '0')}`;
+    $('#mp-save').addEventListener('click', () => App.saveWeeklyPlan());
     $('#mp-generate').addEventListener('click', () => App.generateWeekPrompt());
     $('#mp-copy-prompt').addEventListener('click', () => {
       copyText($('#mp-prompt-body').textContent, () => Toast.show('Week prompt copied', 'success'));
@@ -1833,6 +1559,7 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
         title: copy.slice(0, 60) + (copy.length > 60 ? '…' : ''),
         status: 'drafting',
         platform: item.platform || 'LinkedIn',
+        format: item.format || 'text',
         content: copy,
         date: postDate.toISOString().slice(0, 10),
         assignee: 'Member 1',
@@ -1856,9 +1583,9 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     Toast.show(`${created} card${created !== 1 ? 's' : ''} added to Kanban → Drafting`, 'success', { label: 'Go to Kanban', handler: () => App.switchView('kanban') });
   },
 
-  monthlyPlanValues() {
+  weeklyPlanValues() {
     return {
-      monthYear: $('#mp-month').value,
+      weekStart: $('#mp-week').value,
       goals: $('#mp-goals').value.trim(),
       topics: $('#mp-topics').value.trim(),
       tone: $('#mp-tone').value.trim(),
@@ -1866,34 +1593,34 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
     };
   },
 
-  saveMonthlyPlan() {
-    const v = App.monthlyPlanValues();
-    if (!v.monthYear) { Toast.show('Select a month first', 'warn'); return; }
-    if (!v.goals) { Toast.show('Add month goals first', 'warn'); $('#mp-goals').focus(); return; }
+  saveWeeklyPlan() {
+    const v = App.weeklyPlanValues();
+    if (!v.weekStart) { Toast.show('Select a week first', 'warn'); return; }
+    if (!v.goals) { Toast.show('Add week goals first', 'warn'); $('#mp-goals').focus(); return; }
 
-    const existing = State.monthlyPlans.findIndex(p => p.monthYear === v.monthYear);
+    const existing = State.weeklyPlans.findIndex(p => p.weekStart === v.weekStart);
     if (existing > -1) {
-      Object.assign(State.monthlyPlans[existing], v);
-      DB.saveMonthlyPlan(State.monthlyPlans[existing]).catch(devWarn);
+      Object.assign(State.weeklyPlans[existing], v);
+      DB.saveWeeklyPlan(State.weeklyPlans[existing]).catch(devWarn);
     } else {
       const plan = { id: uid('mp_'), ...v, createdAt: Date.now() };
-      State.monthlyPlans.unshift(plan);
-      DB.saveMonthlyPlan(plan).catch(devWarn);
+      State.weeklyPlans.unshift(plan);
+      DB.saveWeeklyPlan(plan).catch(devWarn);
     }
-    State.pushActivity(`Saved monthly plan for <span class="em">${v.monthYear}</span>`, 'doc');
+    State.pushActivity(`Saved weekly plan for <span class="em">${v.weekStart}</span>`, 'doc');
     State.save();
-    App.renderMonthlyPlanList();
+    App.renderWeeklyPlanList();
     App.renderDashboard();
-    Toast.show('Monthly plan saved', 'success');
+    Toast.show('Weekly plan saved', 'success');
   },
 
   generateWeekPrompt() {
-    const v = App.monthlyPlanValues();
+    const v = App.weeklyPlanValues();
     if (!v.goals && !v.topics) { Toast.show('Fill in goals and topics first', 'warn'); return; }
 
     const now = new Date();
     const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay() + 1);
+    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
     const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -1905,23 +1632,29 @@ ${v.cta ? escapeHtml(v.cta) : '<span class="ph">[call to action]</span>'}`;
       .map(c => `• ${c.platform}: "${c.title}"`)
       .join('\n') || 'None yet — this will be the first batch.';
 
-    const platformList = v.platforms.length ? v.platforms.join(', ') : 'LinkedIn, Instagram';
-    const month = v.monthYear || now.toISOString().slice(0, 7);
+    const selectedPlatforms = v.platforms.length ? v.platforms : ['LinkedIn', 'Instagram', 'X (Twitter)'];
+    const platformList = selectedPlatforms.join(', ');
+    const week = v.weekStart || now.toISOString().slice(0, 10).slice(0, 7);
 
-    const platformLines = v.platforms.slice(0, 4).map((p, i) =>
-      `- ${p}: ${i < 2 ? '2 posts' : '1 post'}`
-    ).join('\n') || '- LinkedIn: 2 posts\n- Instagram: 2 posts\n- X (Twitter): 1 post';
+    const DISTRIBUTION = {
+      'Instagram':   '10 posts → 5 gráfico (single-image graphic) + 5 carrusel',
+      'X (Twitter)': '10 posts → 7 thread/text + 3 carrusel (image carousel)',
+      'LinkedIn':    '10 posts → 7 texto + 3 carrusel',
+      'TikTok':      '5 posts → short-form video',
+    };
+    const platformDistLines = selectedPlatforms
+      .map(p => `- ${p}: ${DISTRIBUTION[p] || '10 posts'}`)
+      .join('\n');
 
     const prompt = `You are a social media strategist for Bluveo — an AI lab that builds intelligent websites, apps, and automated marketing systems.
 
-MONTH: ${month}
-WEEK: ${weekRange}
+WEEK: ${week} (${weekRange})
 PLATFORMS: ${platformList}
 
-MONTH GOALS:
+WEEK GOALS:
 ${v.goals || '[no goals set]'}
 
-KEY TOPICS THIS MONTH:
+KEY TOPICS THIS WEEK:
 ${v.topics || '[no topics set]'}
 
 TONE GUIDANCE:
@@ -1932,25 +1665,32 @@ ${topPosts}
 
 ---
 
-Generate 7 social media posts for the week of ${weekRange}.
+Generate 10 social media posts per selected platform for the week of ${weekRange}.
 
-Distribute across platforms:
-${platformLines}
+FORMAT DISTRIBUTION RULES (hardcoded — do not change these ratios):
+${platformDistLines}
+
+Format values:
+- "graphic"  → single static image post (Instagram only)
+- "carousel" → multi-slide carousel
+- "text"     → text-only post (LinkedIn)
+- "thread"   → Twitter/X thread or long-form text
 
 Rules:
 - Each post stands alone (no "as mentioned" or "last week" references)
-- Vary format: some with hooks, some with questions, some with bullet lists
 - LinkedIn: insight-led, professional, no hashtags, max 1500 chars
 - Instagram: visual-forward caption, 3–5 hashtags, conversational
-- X/Twitter: short take, max 280 chars
+- X/Twitter: threads open with a strong hook, max 280 chars per tweet
 - Match the tone guidance exactly — no buzzwords, no exclamation marks
 - Open with a concrete observation or fact, not a question
+- Assign day: spread posts across Mon–Fri, 2 posts/day per platform
 
-Return a JSON array:
+Return a JSON array — one object per post:
 [
   {
     "platform": "LinkedIn",
     "day": "Monday",
+    "format": "text",
     "copy": "...",
     "visual_prompt": "...",
     "hook": "..."
@@ -1963,20 +1703,20 @@ Return a JSON array:
     Toast.show('Week prompt generated', 'success');
   },
 
-  renderMonthlyPlanList() {
+  renderWeeklyPlanList() {
     const el = $('#mp-plans-list');
     if (!el) return;
-    const plans = State.monthlyPlans;
+    const plans = State.weeklyPlans;
     const countEl = $('#mp-plans-count');
     if (countEl) countEl.innerHTML = `<span class="chip-dot"></span>${plans.length} plan${plans.length === 1 ? '' : 's'}`;
     if (!plans.length) {
-      el.innerHTML = `<div class="empty-mini">${svgIcon('doc')}<div>No monthly plans saved yet. Fill in the form above and hit Save plan.</div></div>`;
+      el.innerHTML = `<div class="empty-mini">${svgIcon('doc')}<div>No weekly plans saved yet. Fill in the form above and hit Save plan.</div></div>`;
       return;
     }
     el.innerHTML = plans.map(p => `
       <div class="plan-row">
         <div>
-          <div class="plan-row-month">${escapeHtml(p.monthYear || '')}</div>
+          <div class="plan-row-month">${escapeHtml(p.weekStart || '')}</div>
           <div class="plan-row-goals">${escapeHtml((p.goals || '').slice(0, 100))}${(p.goals || '').length > 100 ? '…' : ''}</div>
           ${p.platforms && p.platforms.length ? `<div class="plan-row-platforms">${p.platforms.map(pl => `<span class="chip" data-tone="${platformTone(pl)}" style="margin-right:4px;"><span class="chip-dot"></span>${pl}</span>`).join('')}</div>` : ''}
         </div>
@@ -1989,28 +1729,28 @@ Return a JSON array:
       </div>
     `).join('');
     el.querySelectorAll('[data-load-plan]').forEach(btn => {
-      btn.addEventListener('click', () => App.loadMonthlyPlan(btn.dataset.loadPlan));
+      btn.addEventListener('click', () => App.loadWeeklyPlan(btn.dataset.loadPlan));
     });
     el.querySelectorAll('[data-del-plan]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const idx = State.monthlyPlans.findIndex(p => p.id === btn.dataset.delPlan);
+        const idx = State.weeklyPlans.findIndex(p => p.id === btn.dataset.delPlan);
         if (idx >= 0) {
-          const removed = State.monthlyPlans.splice(idx, 1)[0];
+          const removed = State.weeklyPlans.splice(idx, 1)[0];
           State.save();
-          App.renderMonthlyPlanList();
+          App.renderWeeklyPlanList();
           Toast.show('Plan deleted', 'info', {
             label: 'Undo',
-            handler: () => { State.monthlyPlans.splice(idx, 0, removed); State.save(); App.renderMonthlyPlanList(); }
+            handler: () => { State.weeklyPlans.splice(idx, 0, removed); State.save(); App.renderWeeklyPlanList(); }
           });
         }
       });
     });
   },
 
-  loadMonthlyPlan(id) {
-    const p = State.monthlyPlans.find(x => x.id === id);
+  loadWeeklyPlan(id) {
+    const p = State.weeklyPlans.find(x => x.id === id);
     if (!p) return;
-    if (p.monthYear) $('#mp-month').value = p.monthYear;
+    if (p.weekStart) $('#mp-week').value = p.weekStart;
     $('#mp-goals').value = p.goals || '';
     $('#mp-topics').value = p.topics || '';
     $('#mp-tone').value = p.tone || '';
@@ -2018,7 +1758,7 @@ Return a JSON array:
       $$('#mp-platforms input').forEach(cb => { cb.checked = p.platforms.includes(cb.value); });
     }
     Toast.show('Plan loaded into form', 'info');
-    $('#mp-month').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#mp-week').scrollIntoView({ behavior: 'smooth', block: 'center' });
   },
 
   /* -------- PALETTE bind only -------- */
@@ -2052,7 +1792,7 @@ Return a JSON array:
           key: 'bloom', name: 'Bloom', tag: 'Free tier', url: 'https://bloom.so',
           logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12M12 12C12 12 8 10 8 6a4 4 0 0 1 8 0c0 4-4 6-4 6z"/><path d="M12 12c0 0-4.5 1.5-6 5M12 12c0 0 4.5 1.5 6 5"/></svg>`,
           desc: 'Brand-aware AI image generation. Generate social visuals, ad creatives, and product shots trained on your brand kit.',
-          bullets: ['Reads your <strong>brand colors & fonts</strong>', 'Generate ads, carousels, story covers', 'Upload to Cloudinary → paste URL into card']
+          bullets: ['Reads your <strong>brand colors & fonts</strong>', 'Generate ads, carousels, story covers', 'Upload to Google Drive → paste URL into card']
         },
         {
           key: 'canva', name: 'Canva (graphics)', tag: 'Free', url: 'https://www.canva.com/create/social-media-graphics/',
@@ -2089,16 +1829,10 @@ Return a JSON array:
       ],
       hosting: [
         {
-          key: 'cloudinary', name: 'Cloudinary', tag: 'Free', url: 'https://cloudinary.com/users/login',
-          logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1 .3-9.99 7 7 0 0 1 13.4 2A4.5 4.5 0 0 1 19 18"/></svg>`,
-          desc: 'Host video and image assets, get a direct URL to paste into the Buffer push.',
-          bullets: ['Free: <strong>25 credits/mo</strong>', 'Auto-format and resize on URL', 'Stable URL = safe for Buffer']
-        },
-        {
-          key: 'imgur', name: 'Imgur', tag: 'Free', url: 'https://imgur.com/upload',
-          logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h-2V8h2v8zm5 0h-2V8h2v8z"/></svg>`,
-          desc: 'Fastest path to a static image URL. No account needed for short-lived assets.',
-          bullets: ['Paste URL into post copy', 'Use for <strong>quick previews</strong>, not long-term', 'Right-click → “Copy image address”']
+          key: 'gdrive', name: 'Google Drive', tag: 'Free', url: 'https://drive.google.com/',
+          logo: `<svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M4.5 20.5L2 16.5l6-10.5h4L6 16.5h-1.5L4.5 20.5zM22 16.5L19.5 20.5H9l2.5-4H22zM15.5 6l2.5 4.5-4.5 7.5-2.5-4.5L15.5 6z” opacity=”.87”/></svg>`,
+          desc: 'Upload image to Google Drive, share it publicly, paste the URL into the card media field.',
+          bullets: ['Upload → right-click → Share', 'Set to <strong>”Anyone with the link”</strong>', 'Copy link → paste in card → push to Buffer']
         },
       ],
     };
@@ -2199,6 +1933,7 @@ function renderCard(c) {
         ${c.date ? `<span class="kard-meta">${fmtDate(c.date)}</span>` : ''}
       </div>
       <div class="kard-title">${escapeHtml(c.title)}</div>
+      ${c.format ? `<div style="margin:4px 0 0;"><span class="chip" data-tone="gray" style="font-size:10px;padding:2px 7px;"><span class="chip-dot"></span>${escapeHtml(c.format)}</span></div>` : ''}
       ${extra}
       <div class="kard-foot">
         <div class="avatar-mini" data-m="${ASSIGNEE_NUM(c.assignee)}" title="${c.assignee}">${ASSIGNEE_INITIAL(c.assignee)}</div>
@@ -2605,90 +2340,6 @@ if (document.readyState === 'loading') {
 
 // Expose for debugging (settings excluded — contains sensitive tokens)
 window.BluVideoOS = { State: { briefs: State.briefs, cards: State.cards, metrics: State.metrics, activity: State.activity }, App };
-
-/* -----------------------------------------------------------
-   GOOGLE CALENDAR
-   ----------------------------------------------------------- */
-const GCal = {
-  SCOPE: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
-
-  connect(clientId) {
-    if (!window.google || !window.google.accounts) {
-      Toast.show('Google Identity Services not loaded yet — try again', 'warn'); return;
-    }
-    const tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: GCal.SCOPE,
-      callback: (resp) => {
-        if (resp.error) { Toast.show('Google auth failed: ' + resp.error, 'error'); return; }
-        State.settings.gcalToken = resp.access_token;
-        State.save();
-        GCal.listCalendars(resp.access_token);
-      },
-    });
-    tokenClient.requestAccessToken({ prompt: 'select_account' });
-  },
-
-  async listCalendars(token) {
-    try {
-      const res = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=writer', {
-        headers: { Authorization: 'Bearer ' + token },
-      });
-      if (!res.ok) throw new Error(res.status);
-      const data = await res.json();
-      const cals = (data.items || []).filter(c => !c.deleted);
-      const sel = $('#gcal-calendar-select');
-      sel.innerHTML = cals.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.summary)}</option>`).join('');
-      if (State.settings.gcalCalendarId) sel.value = State.settings.gcalCalendarId;
-      $('#gcal-picker').style.display = 'block';
-      Toast.show('Calendars loaded — select one and save', 'info');
-    } catch (e) {
-      Toast.show('Failed to load calendars — check Client ID and try again', 'error');
-    }
-  },
-
-  async createEvent(card) {
-    const token = State.settings.gcalToken;
-    const calId = State.settings.gcalCalendarId;
-    if (!token || !calId) return;
-
-    const date = card.scheduledFor ? new Date(card.scheduledFor) : (card.date ? new Date(card.date + 'T09:00:00') : null);
-    if (!date) return;
-
-    const end = new Date(date.getTime() + 30 * 60000);
-    const body = {
-      summary: `[${card.platform}] ${card.title}`,
-      description: card.content ? card.content.slice(0, 500) : '',
-      start: { dateTime: date.toISOString() },
-      end:   { dateTime: end.toISOString() },
-      colorId: GCal._platformColor(card.platform),
-    };
-
-    try {
-      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`, {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (res.status === 401) {
-        State.settings.gcalToken = '';
-        State.save();
-        App.renderIntegrationStatus();
-        Toast.show('Google Calendar token expired — reconnect in Integrations', 'warn');
-        return;
-      }
-      if (!res.ok) throw new Error(res.status);
-      Toast.show(`Event added to Google Calendar`, 'success');
-    } catch (e) {
-      devWarn('GCal createEvent failed', e);
-    }
-  },
-
-  _platformColor(platform) {
-    const map = { 'LinkedIn': '9', 'Instagram': '6', 'X (Twitter)': '8', 'TikTok': '2', 'Facebook': '11', 'Blog': '10' };
-    return map[platform] || '1';
-  },
-};
 
 // Spin keyframe for sync icon
 const style = document.createElement('style');

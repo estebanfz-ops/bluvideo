@@ -13,10 +13,6 @@
 <script src="/env-config.js"></script>
 <!-- Supabase client -->
 <script type="module" src="/src/lib/supabase.js"></script>
-<!-- Cloudinary Upload Widget -->
-<script src="https://upload-widget.cloudinary.com/global/all.js"></script>
-<!-- Google Identity Services (for Google Calendar OAuth) -->
-<script src="https://accounts.google.com/gsi/client" async></script>
 <link rel="stylesheet" href="bluvideo.css">
 </head>
 <body>
@@ -28,7 +24,7 @@
     </div>
     <h1 class="auth-title">BluVideo <span class="dim">OS</span></h1>
     <p class="auth-subtitle">Sign in to continue</p>
-    <form class="auth-form" id="auth-form" novalidate>
+    <form class="auth-form" id="auth-form" method="post" action="about:blank" novalidate>
       <div class="auth-field">
         <label for="auth-email">Email</label>
         <input type="email" id="auth-email" name="email" autocomplete="email" required placeholder="you@bluveo.com" />
@@ -188,31 +184,21 @@
           <div class="view-title-block">
             <div class="view-eyebrow">Briefing Engine</div>
             <h2 class="view-title">Compose a <span class="display-em">brief.</span></h2>
-            <div class="view-sub">Fill the form on the left — the right side updates live. Copy as a Claude prompt when you're ready.</div>
-          </div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn" data-action="brief-reset">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
-              Reset
-            </button>
-            <button class="btn btn-primary" data-action="brief-save">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
-              Save brief <span class="kbd">⌘S</span>
-            </button>
+            <div class="view-sub">Browse and manage your brief library below.</div>
           </div>
         </div>
 
-        <!-- Monthly Content Planner -->
+        <!-- Weekly Content Planner -->
         <div class="card monthly-plan-card" style="margin-bottom: 18px;">
           <div class="card-head">
-            <div class="card-title">Monthly content plan</div>
+            <div class="card-title">Weekly content plan</div>
             <span class="chip" data-tone="blue" id="mp-sync-chip"><span class="chip-dot"></span>Supabase sync</span>
           </div>
           <div class="card-body">
             <div class="row row-2">
               <div class="field">
-                <label class="label" for="mp-month">Month</label>
-                <input class="input" type="month" id="mp-month" />
+                <label class="label" for="mp-week">Week</label>
+                <input class="input" type="week" id="mp-week" />
               </div>
               <div class="field">
                 <label class="label">Platforms</label>
@@ -225,7 +211,7 @@
               </div>
             </div>
             <div class="field">
-              <label class="label" for="mp-goals">Month goals <span class="hint">what should this month achieve?</span></label>
+              <label class="label" for="mp-goals">Week goals <span class="hint">what should this week achieve?</span></label>
               <textarea class="textarea" id="mp-goals" placeholder="Drive 20 demo requests. Grow LinkedIn by 5%. Launch the AI lab case study." style="min-height:72px;"></textarea>
             </div>
             <div class="row row-2">
@@ -234,7 +220,7 @@
                 <textarea class="textarea" id="mp-topics" placeholder="AI tools for small teams&#10;Q3 case study launch&#10;Team behind Bluveo&#10;Service awareness" style="min-height:90px;"></textarea>
               </div>
               <div class="field">
-                <label class="label" for="mp-tone">Tone guidance this month</label>
+                <label class="label" for="mp-tone">Tone guidance this week</label>
                 <textarea class="textarea" id="mp-tone" placeholder="Confident and plain-spoken. No buzzwords. Lead with insight, not promotion." style="min-height:90px;"></textarea>
               </div>
             </div>
@@ -293,86 +279,13 @@
           </div>
         </div>
 
-        <!-- Saved monthly plans list -->
+        <!-- Saved weekly plans list -->
         <div class="card" style="margin-bottom:18px;">
           <div class="card-head">
-            <div class="card-title">Saved monthly plans</div>
+            <div class="card-title">Saved weekly plans</div>
             <span class="chip" data-tone="gray" id="mp-plans-count"><span class="chip-dot"></span>0 plans</span>
           </div>
           <div id="mp-plans-list"></div>
-        </div>
-
-        <div class="brief-layout">
-          <div class="card brief-form-card">
-            <div class="card-head">
-              <div class="card-title">Brief details</div>
-              <span class="chip" data-tone="gray" id="brief-mode-chip"><span class="chip-dot"></span>New</span>
-            </div>
-            <div class="card-body">
-              <div class="field">
-                <label class="label" for="b-title">Campaign title <span class="hint">internal name</span></label>
-                <input class="input" id="b-title" type="text" placeholder="e.g. Q3 Founder Letter — relaunching with Vol 2" />
-              </div>
-              <div class="row row-2">
-                <div class="field">
-                  <label class="label" for="b-platform">Primary platform</label>
-                  <select class="select" id="b-platform">
-                    <option>LinkedIn</option>
-                    <option>X (Twitter)</option>
-                    <option>Instagram</option>
-                    <option>TikTok</option>
-                    <option>Blog</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label class="label" for="b-tone">Tone</label>
-                  <select class="select" id="b-tone">
-                    <option>Authoritative & calm</option>
-                    <option>Conversational & warm</option>
-                    <option>Bold & contrarian</option>
-                    <option>Playful & curious</option>
-                    <option>Technical & precise</option>
-                  </select>
-                </div>
-              </div>
-              <div class="field">
-                <label class="label" for="b-objective">Objective <span class="hint">one sentence — what moves?</span></label>
-                <textarea class="textarea" id="b-objective" placeholder="Drive 25 demo requests from B2B SaaS founders during Q3."></textarea>
-              </div>
-              <div class="field">
-                <label class="label" for="b-audience">Audience</label>
-                <textarea class="textarea" id="b-audience" placeholder="Series A–B founders, 30–45, raising next round in 6mo. Allergic to fluff."></textarea>
-              </div>
-              <div class="field">
-                <label class="label" for="b-takeaways">Key takeaways <span class="hint">one per line</span></label>
-                <textarea class="textarea" id="b-takeaways" placeholder="• Content velocity ≠ noise&#10;• Our 3-step brief loop ships 4× faster&#10;• Free template inside" style="min-height: 110px;"></textarea>
-              </div>
-              <div class="field">
-                <label class="label" for="b-cta">Call to action</label>
-                <input class="input" id="b-cta" type="text" placeholder="Reply 'TEMPLATE' and I'll DM it." />
-              </div>
-            </div>
-          </div>
-
-          <div class="prompt-preview">
-            <div class="preview-tabs">
-              <button class="preview-tab active" data-tab="copy">Copy prompt</button>
-              <button class="preview-tab" data-tab="visual">Visual prompt</button>
-              <button class="preview-tab" data-tab="thread">Thread starter</button>
-              <span class="preview-meta" id="preview-meta">0 chars · 0 lines</span>
-            </div>
-            <div class="preview-body" id="preview-body"></div>
-            <div class="preview-actions">
-              <button class="btn" data-action="copy-prompt">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-                Copy to clipboard <span class="kbd">⌘⇧C</span>
-              </button>
-              <button class="btn btn-primary" data-action="send-to-claude">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
-                Send to Claude
-              </button>
-            </div>
-          </div>
         </div>
 
         <div class="card brief-library">
@@ -456,7 +369,7 @@
           </div>
           <div class="workflow-steps">
             <div class="workflow-step" data-step-go="briefs">
-              <span class="num">1</span><span>Build monthly plan &amp; generate week prompt in <strong>Briefs</strong></span><span class="arrow">&rarr;</span>
+              <span class="num">1</span><span>Build weekly plan &amp; generate week prompt in <strong>Briefs</strong></span><span class="arrow">&rarr;</span>
             </div>
             <div class="workflow-step" data-step-claude="1">
               <span class="num">2</span><span>Paste prompt in <strong>Claude.ai</strong> &rarr; get JSON array back</span><span class="arrow">&rarr;</span>
@@ -467,8 +380,8 @@
             <div class="workflow-step" data-step-go="kanban">
               <span class="num">4</span><span>Open each card in <strong>Kanban</strong>, copy visual prompt &rarr; generate in Bloom</span><span class="arrow">&rarr;</span>
             </div>
-            <div class="workflow-step" data-step-tool="imgur">
-              <span class="num">5</span><span>Upload Bloom image via Cloudinary &rarr; URL auto-attached to card</span><span class="arrow">&rarr;</span>
+            <div class="workflow-step" data-step-go="kanban">
+              <span class="num">5</span><span>Upload Bloom image to Google Drive &rarr; paste shareable URL in card</span><span class="arrow">&rarr;</span>
             </div>
             <div class="workflow-step" data-step-go="kanban">
               <span class="num">6</span><span>Edit copy &rarr; move to <strong>Review &rarr; Approved</strong></span><span class="arrow">&rarr;</span>
@@ -539,7 +452,7 @@
           <div class="view-title-block">
             <div class="view-eyebrow">Analytics</div>
             <h2 class="view-title">Performance <span class="display-em">graph</span></h2>
-            <div class="view-sub">Sync via Meta Graph API, or log weekly metrics manually below.</div>
+            <div class="view-sub">Sync via Meta Graph API. Data updates automatically after each sync.</div>
           </div>
           <div style="display:flex; gap:8px;">
             <button class="btn" id="meta-sync-btn">
@@ -580,46 +493,6 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title">Log a weekly snapshot</div>
-            <span class="chip" data-tone="gray"><span class="chip-dot"></span>manual entry</span>
-          </div>
-          <div class="card-body">
-            <div class="metric-form-grid">
-              <div>
-                <label class="label">Week of</label>
-                <input class="input" type="date" id="m-date" />
-              </div>
-              <div>
-                <label class="label">Platform</label>
-                <select class="select" id="m-platform">
-                  <option value="instagram">Instagram</option>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="x_twitter">X / Twitter</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="facebook">Facebook</option>
-                </select>
-              </div>
-              <div>
-                <label class="label">Reach</label>
-                <input class="input" type="number" id="m-reach" placeholder="12480" />
-              </div>
-              <div>
-                <label class="label">Engagement</label>
-                <input class="input" type="number" id="m-engage" placeholder="842" />
-              </div>
-              <div>
-                <label class="label">Followers</label>
-                <input class="input" type="number" id="m-followers" placeholder="3260" />
-              </div>
-              <button class="btn btn-primary" id="m-add">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                Log
-              </button>
-            </div>
-          </div>
-        </div>
       </section>
 
       <!-- ============== INTEGRATIONS / SETTINGS ============== -->
@@ -689,31 +562,6 @@
             </form>
           </div>
 
-          <!-- Cloudinary -->
-          <div class="integration-card">
-            <div class="integration-head">
-              <div class="integration-logo" style="color: oklch(72% 0.14 200);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1 .3-9.99 7 7 0 0 1 13.4 2A4.5 4.5 0 0 1 19 18"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
-              </div>
-              <div class="integration-meta">
-                <h4>Cloudinary</h4>
-                <p>Upload images &amp; video directly from post cards. URLs auto-attached.</p>
-              </div>
-              <span class="integration-status" id="cloudinary-status">Disconnected</span>
-            </div>
-            <form id="cloudinary-form">
-              <div class="field">
-                <label class="label" for="set-cloud-name">Cloud name</label>
-                <input class="input" type="text" id="set-cloud-name" placeholder="dxyz1234" autocomplete="off" />
-              </div>
-              <div class="field">
-                <label class="label" for="set-cloud-preset">Upload preset <span class="hint">must be unsigned</span></label>
-                <input class="input" type="text" id="set-cloud-preset" placeholder="bluvideo_unsigned" autocomplete="off" />
-              </div>
-              <button class="btn" type="submit" style="width:100%; justify-content:center;">Save Cloudinary config</button>
-            </form>
-          </div>
-
           <!-- Claude -->
           <div class="integration-card">
             <div class="integration-head">
@@ -731,46 +579,6 @@
             </div>
           </div>
 
-          <!-- Google Calendar -->
-          <div class="integration-card">
-            <div class="integration-head">
-              <div class="integration-logo" style="color: oklch(62% 0.18 25);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/><path d="M8 13h2v2H8z"/><path d="M11 13h2v2h-2z"/><path d="M14 13h2v2h-2z"/></svg>
-              </div>
-              <div class="integration-meta">
-                <h4>Google Calendar</h4>
-                <p>Auto-create events when posts are scheduled. Uses a separate Google account.</p>
-              </div>
-              <span class="integration-status" id="gcal-status">Disconnected</span>
-            </div>
-            <form id="gcal-form">
-              <div class="field">
-                <label class="label" for="set-gcal-client-id">
-                  Google OAuth Client ID
-                  <span class="hint">— from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" style="color:var(--info);">Google Cloud Console</a> · Calendar API must be enabled</span>
-                </label>
-                <input class="input" type="text" id="set-gcal-client-id" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" />
-              </div>
-              <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;" id="gcal-connect-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-                Connect Google Calendar
-              </button>
-            </form>
-            <div id="gcal-picker" style="display:none; margin-top:14px;">
-              <div class="field">
-                <label class="label" for="gcal-calendar-select">Select calendar to sync to</label>
-                <select class="select" id="gcal-calendar-select"></select>
-              </div>
-              <div style="display:flex; gap:8px; margin-top:8px;">
-                <button class="btn" id="gcal-save-calendar" style="flex:1; justify-content:center;">Save calendar</button>
-                <button class="btn btn-danger-ghost" id="gcal-disconnect" style="flex:0 0 auto;">Disconnect</button>
-              </div>
-            </div>
-            <div id="gcal-connected-info" style="display:none; margin-top:12px; font-size:12.5px; color:var(--text-faint); line-height:1.6;">
-              Scheduled posts will automatically create events in your selected Google Calendar. You can re-connect at any time to change the calendar.
-              <div style="margin-top:8px;"><button class="btn btn-danger-ghost" id="gcal-disconnect-2" style="font-size:11px;">Disconnect</button></div>
-            </div>
-          </div>
 
         </div>
       </section>
@@ -878,13 +686,10 @@
         </div>
       </div>
 
-      <div class="section-label">Media <span style="color:var(--text-faint); font-family:var(--font-sans); text-transform:none; letter-spacing:0; font-weight:400;">— images &amp; video via Cloudinary</span></div>
-      <div class="media-upload-area">
-        <div class="media-thumbs" id="c-media-thumbs"></div>
-        <button type="button" class="btn" id="c-upload-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload media
-        </button>
+      <div class="section-label">Media <span style="color:var(--text-faint); font-family:var(--font-sans); text-transform:none; letter-spacing:0; font-weight:400;">— paste Google Drive shareable URL</span></div>
+      <div class="field">
+        <input class="input" type="url" id="c-media-url" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
+        <span style="font-size:11px; color:var(--text-faint); margin-top:4px; display:block;">Upload to Google Drive → right-click → Share → "Anyone with the link" → copy link.</span>
       </div>
 
       <div class="section-label">Visual prompt <span style="color:var(--text-faint); font-family:var(--font-sans); text-transform:none; letter-spacing:0; font-weight:400;">— for Bloom image generation</span></div>

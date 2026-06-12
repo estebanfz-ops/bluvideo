@@ -10,13 +10,13 @@ const devWarn = (...a) => { if (localStorage.getItem('bluVideoOS_debug') === 'tr
 const STORAGE_KEY = 'bluVideoOS_v2';
 
 const STATUSES = [
-  { id: 'ideation',  label: 'Ideation',  color: 'oklch(78% 0.14 75)',  icon: 'lightbulb' },
-  { id: 'drafting',  label: 'Drafting',  color: 'oklch(72% 0.13 220)', icon: 'pen' },
-  { id: 'review',    label: 'In Review', color: 'oklch(72% 0.16 295)', icon: 'eye' },
-  { id: 'approved',  label: 'Approved',  color: 'oklch(74% 0.16 152)', icon: 'check' },
-  { id: 'scheduled', label: 'Scheduled', color: 'oklch(73% 0.16 50)',  icon: 'clock' },
-  { id: 'published', label: 'Published', color: 'oklch(72% 0.13 200)', icon: 'send' },
-  { id: 'failed',    label: 'Failed',    color: 'oklch(62% 0.19 22)',  icon: 'alert' },
+  { id: 'ideation',  label: 'Ideación',   color: 'oklch(78% 0.14 75)',  icon: 'lightbulb' },
+  { id: 'drafting',  label: 'Borrador',   color: 'oklch(72% 0.13 220)', icon: 'pen' },
+  { id: 'review',    label: 'En revisión', color: 'oklch(72% 0.16 295)', icon: 'eye' },
+  { id: 'approved',  label: 'Aprobado',   color: 'oklch(74% 0.16 152)', icon: 'check' },
+  { id: 'scheduled', label: 'Programado', color: 'oklch(73% 0.16 50)',  icon: 'clock' },
+  { id: 'published', label: 'Publicado',  color: 'oklch(72% 0.13 200)', icon: 'send' },
+  { id: 'failed',    label: 'Fallido',    color: 'oklch(62% 0.19 22)',  icon: 'alert' },
 ];
 
 const PLATFORM_ICONS = {
@@ -85,38 +85,38 @@ function seed(s) {
     return x.toISOString().slice(0,10);
   };
   s.briefs = [
-    { id: 'b1', title: 'Vol 2 launch — founder letter', platform: 'LinkedIn', tone: 'Authoritative & calm',
-      objective: 'Drive 25 demo requests from B2B SaaS founders during the Vol 2 launch week.',
-      audience: 'Series A–B founders, 30–45, raising next round in 6 months. Allergic to fluff and dashboards.',
-      takeaways: '• Content velocity ≠ noise\n• Our 3-step brief loop ships 4× faster\n• Free Notion template inside',
-      cta: 'Reply "TEMPLATE" and I\'ll DM the doc.', createdAt: Date.now() - 86400000 * 2 },
-    { id: 'b2', title: 'Case study — Helix saves 12 hrs/wk', platform: 'Blog', tone: 'Conversational & warm',
-      objective: 'Convert mid-funnel leads (newsletter subs) into booked demos.',
-      audience: 'Head of Content at 50–200 person SaaS, drowning in deliverables, no system.',
-      takeaways: '• Time saved per week, with receipts\n• Workflow before / after diagram\n• Team quote on creative confidence',
-      cta: 'Book a 20-min walkthrough.', createdAt: Date.now() - 86400000 * 5 }
+    { id: 'b1', title: 'Lanzamiento Vol 2 — carta del fundador', platform: 'LinkedIn', tone: 'Autoritario y sereno',
+      objective: 'Generar 25 solicitudes de demo de fundadores de SaaS B2B durante la semana de lanzamiento del Vol 2.',
+      audience: 'Fundadores de Serie A–B, 30–45, levantando su próxima ronda en 6 meses. Alérgicos al relleno y a los dashboards.',
+      takeaways: '• Velocidad de contenido ≠ ruido\n• Nuestro flujo de brief en 3 pasos produce 4× más rápido\n• Plantilla gratuita de Notion incluida',
+      cta: 'Responde "PLANTILLA" y te envío el documento por DM.', createdAt: Date.now() - 86400000 * 2 },
+    { id: 'b2', title: 'Caso de estudio — Helix ahorra 12 h/semana', platform: 'Blog', tone: 'Cercano y conversacional',
+      objective: 'Convertir leads de mitad de embudo (suscriptores del newsletter) en demos agendadas.',
+      audience: 'Responsable de Contenido en SaaS de 50–200 personas, ahogado en entregables y sin sistema.',
+      takeaways: '• Tiempo ahorrado por semana, con datos\n• Diagrama del flujo antes / después\n• Cita del equipo sobre confianza creativa',
+      cta: 'Agenda un recorrido de 20 min.', createdAt: Date.now() - 86400000 * 5 }
   ];
   s.cards = [
-    { id: 'c1', title: 'Founder letter — "Why we built Bluveo OS"', status: 'drafting',
-      assignee: 'Member 1', platform: 'LinkedIn', date: d(2), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 },
-    { id: 'c2', title: 'Carousel — 5 signs your content team is bottlenecked', status: 'ideation',
-      assignee: 'Member 2', platform: 'Instagram', date: d(7), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 2 },
-    { id: 'c3', title: 'Thread — the "brief once, ship five" workflow', status: 'review',
-      assignee: 'Member 1', platform: 'X (Twitter)', date: d(3), content: 'Most teams brief in Slack. Slack is a queue, not a brief. Here\'s the 6-field doc we use instead →', figma: '', canva: '', createdAt: Date.now() - 86400000 * 3 },
-    { id: 'c4', title: 'Helix case study — long form blog', status: 'approved',
-      assignee: 'Member 3', platform: 'Blog', date: d(5), content: 'When Maya took over content at Helix, the team was shipping 1 post a week and burning out twice as fast…', figma: '', canva: '', createdAt: Date.now() - 86400000 * 6 },
-    { id: 'c5', title: 'Reel — POV: brief 30 sec, shoot 30 min', status: 'scheduled',
-      assignee: 'Member 2', platform: 'TikTok', date: d(1), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 4 },
-    { id: 'c6', title: 'Carousel — "the death of the content brief"', status: 'scheduled',
-      assignee: 'Member 1', platform: 'LinkedIn', date: d(4), content: 'Most briefs die in Slack threads. Here are the 6 fields that keep them alive →', figma: '', canva: '', createdAt: Date.now() - 86400000 * 7 },
-    { id: 'c7', title: 'Recap — what shipped in October', status: 'published',
-      assignee: 'Member 3', platform: 'LinkedIn', date: d(-3), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 10 },
-    { id: 'c8', title: 'Quote graphic — "noise is not velocity"', status: 'ideation',
-      assignee: 'Member 4', platform: 'Instagram', date: '', content: '', figma: '', canva: '', createdAt: Date.now() - 3600000 },
-    { id: 'c9', title: 'Open thread — what tool stack are you using?', status: 'drafting',
-      assignee: 'Member 1', platform: 'X (Twitter)', date: d(2), content: '', figma: '', canva: '', createdAt: Date.now() - 7200000 },
-    { id: 'c10', title: 'Behind-the-scenes — editing the founder letter', status: 'published',
-      assignee: 'Member 2', platform: 'Instagram', date: d(-5), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 8 },
+    { id: 'c1', title: 'Carta del fundador — "Por qué creamos Bluveo OS"', status: 'drafting',
+      assignee: 'Miembro 1', platform: 'LinkedIn', date: d(2), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 },
+    { id: 'c2', title: 'Carrusel — 5 señales de que tu equipo de contenido está saturado', status: 'ideation',
+      assignee: 'Miembro 2', platform: 'Instagram', date: d(7), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 2 },
+    { id: 'c3', title: 'Thread — el flujo "haz el brief una vez, publica cinco"', status: 'review',
+      assignee: 'Miembro 1', platform: 'X (Twitter)', date: d(3), content: 'La mayoría de los equipos hace briefs en Slack. Slack es una cola, no un brief. Este es el documento de 6 campos que usamos en su lugar →', figma: '', canva: '', createdAt: Date.now() - 86400000 * 3 },
+    { id: 'c4', title: 'Caso de estudio Helix — blog de formato largo', status: 'approved',
+      assignee: 'Miembro 3', platform: 'Blog', date: d(5), content: 'Cuando Maya asumió el contenido en Helix, el equipo publicaba 1 post por semana y se quemaba al doble de velocidad…', figma: '', canva: '', createdAt: Date.now() - 86400000 * 6 },
+    { id: 'c5', title: 'Reel — POV: brief 30 seg, grabación 30 min', status: 'scheduled',
+      assignee: 'Miembro 2', platform: 'TikTok', date: d(1), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 4 },
+    { id: 'c6', title: 'Carrusel — "la muerte del brief de contenido"', status: 'scheduled',
+      assignee: 'Miembro 1', platform: 'LinkedIn', date: d(4), content: 'La mayoría de los briefs muere en hilos de Slack. Estos son los 6 campos que los mantienen vivos →', figma: '', canva: '', createdAt: Date.now() - 86400000 * 7 },
+    { id: 'c7', title: 'Resumen — qué publicamos en octubre', status: 'published',
+      assignee: 'Miembro 3', platform: 'LinkedIn', date: d(-3), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 10 },
+    { id: 'c8', title: 'Gráfico de cita — "el ruido no es velocidad"', status: 'ideation',
+      assignee: 'Miembro 4', platform: 'Instagram', date: '', content: '', figma: '', canva: '', createdAt: Date.now() - 3600000 },
+    { id: 'c9', title: 'Thread abierto — ¿qué stack de herramientas usas?', status: 'drafting',
+      assignee: 'Miembro 1', platform: 'X (Twitter)', date: d(2), content: '', figma: '', canva: '', createdAt: Date.now() - 7200000 },
+    { id: 'c10', title: 'Detrás de cámaras — editando la carta del fundador', status: 'published',
+      assignee: 'Miembro 2', platform: 'Instagram', date: d(-5), content: '', figma: '', canva: '', createdAt: Date.now() - 86400000 * 8 },
   ];
   const week = (n) => {
     const x = new Date(today); x.setDate(x.getDate() - 7 * n);
@@ -133,11 +133,11 @@ function seed(s) {
     { date: week(0), reach: 17820, engage: 1284, followers: 3502 },
   ];
   s.activity = [
-    { id: 'a1', text: '<span class="em">Member 1</span> moved "Founder letter — Why we built Bluveo OS" to Drafting', icon: 'arrow', at: Date.now() - 1800000 },
-    { id: 'a2', text: '<span class="em">Member 2</span> created brief "Vol 2 launch — founder letter"', icon: 'doc', at: Date.now() - 3600000 * 4 },
-    { id: 'a3', text: '<span class="em">Member 3</span> approved "Helix case study — long form blog"', icon: 'check', at: Date.now() - 3600000 * 8 },
-    { id: 'a4', text: '<span class="em">Member 1</span> scheduled "Reel — POV: brief 30 sec, shoot 30 min" for tomorrow', icon: 'clock', at: Date.now() - 86400000 },
-    { id: 'a5', text: '<span class="em">Meta sync</span> picked up reach +14% week over week', icon: 'chart', at: Date.now() - 86400000 * 2 },
+    { id: 'a1', text: '<span class="em">Miembro 1</span> movió "Carta del fundador — Por qué creamos Bluveo OS" a Borrador', icon: 'arrow', at: Date.now() - 1800000 },
+    { id: 'a2', text: '<span class="em">Miembro 2</span> creó el brief "Lanzamiento Vol 2 — carta del fundador"', icon: 'doc', at: Date.now() - 3600000 * 4 },
+    { id: 'a3', text: '<span class="em">Miembro 3</span> aprobó "Caso de estudio Helix — blog de formato largo"', icon: 'check', at: Date.now() - 3600000 * 8 },
+    { id: 'a4', text: '<span class="em">Miembro 1</span> programó "Reel — POV: brief 30 seg, grabación 30 min" para mañana', icon: 'clock', at: Date.now() - 86400000 },
+    { id: 'a5', text: '<span class="em">Sincronización Meta</span> detectó alcance +14% semana a semana', icon: 'chart', at: Date.now() - 86400000 * 2 },
   ];
 }
 
@@ -151,22 +151,22 @@ function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(d)) return '';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('es-ES',{ month: 'short', day: 'numeric' });
 }
 function fmtDatetime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(d)) return '';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
-    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('es-ES',{ month: 'short', day: 'numeric' }) + ' ' +
+    d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 function fmtRelative(ts) {
   const diff = (Date.now() - ts) / 1000;
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-  if (diff < 86400 * 7) return Math.floor(diff/86400) + 'd ago';
-  return new Date(ts).toLocaleDateString();
+  if (diff < 60) return 'ahora mismo';
+  if (diff < 3600) return 'hace ' + Math.floor(diff/60) + ' min';
+  if (diff < 86400) return 'hace ' + Math.floor(diff/3600) + ' h';
+  if (diff < 86400 * 7) return 'hace ' + Math.floor(diff/86400) + ' d';
+  return new Date(ts).toLocaleDateString('es-ES');
 }
 function uid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
@@ -264,9 +264,9 @@ const DB = {
       if (posts) {
         State.cards = posts.map(p => ({
           id: p.id,
-          title: p.body.split('\n')[0].slice(0, 80) || 'Untitled',
+          title: p.body.split('\n')[0].slice(0, 80) || 'Sin título',
           status: this._mapStatus(p.status),
-          assignee: p.created_by_name || 'Member 1',
+          assignee: p.created_by_name || 'Miembro 1',
           platform: (p.platforms || [])[0] || 'LinkedIn',
           date: p.scheduled_for ? p.scheduled_for.slice(0, 10) : '',
           scheduledFor: p.scheduled_for || null,
@@ -523,7 +523,7 @@ const App = {
       e.preventDefault();
       errEl.textContent = '';
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Signing in…';
+      submitBtn.textContent = 'Iniciando sesión…';
 
       const { data, error } = await window.BluvideoSupabase.signIn(
         emailEl.value.trim(),
@@ -531,10 +531,10 @@ const App = {
       );
 
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Sign in';
+      submitBtn.textContent = 'Iniciar sesión';
 
       if (error) {
-        errEl.textContent = error.message || 'Sign in failed. Check your credentials.';
+        errEl.textContent = error.message || 'Error al iniciar sesión. Revisa tus credenciales.';
         return;
       }
 
@@ -543,7 +543,7 @@ const App = {
       await DB.loadAll();
       this.renderAll();
       this.switchView(this.currentView);
-      Toast.show('Signed in', 'success');
+      Toast.show('Sesión iniciada', 'success');
     });
   },
 
@@ -557,7 +557,7 @@ const App = {
     this.currentView = view;
     $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
     $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
-    const labels = { dashboard: 'Dashboard', briefs: 'Briefing Engine', create: 'Create', kanban: 'Kanban', calendar: 'Calendar', analytics: 'Analytics', settings: 'Integrations' };
+    const labels = { dashboard: 'Panel', briefs: 'Motor de Briefs', create: 'Crear', kanban: 'Kanban', calendar: 'Calendario', analytics: 'Analítica', settings: 'Integraciones' };
     $('#crumb-here').textContent = labels[view] || '';
     if (view === 'calendar') this.renderCalendar();
     if (view === 'analytics') this.renderAnalytics();
@@ -654,17 +654,17 @@ const App = {
       if (e.key === 'Enter' && qa.value.trim()) {
         const card = {
           id: uid('c_'), title: qa.value.trim(), status: 'ideation',
-          assignee: 'Member 1', platform: 'LinkedIn', date: '', content: '',
+          assignee: 'Miembro 1', platform: 'LinkedIn', date: '', content: '',
           figma: '', canva: '', createdAt: Date.now()
         };
         State.cards.unshift(card);
-        State.pushActivity(`Quick-added "<span class="em">${escapeHtml(card.title)}</span>" to Ideation`, 'plus');
+        State.pushActivity(`Añadió rápido "<span class="em">${escapeHtml(card.title)}</span>" a Ideación`, 'plus');
         State.save();
         DB.saveCard(card).catch(devWarn);
         qa.value = '';
         App.renderDashboard();
         App.renderKanban();
-        Toast.show('Added to Ideation', 'success', { label: 'Open', handler: () => { App.switchView('kanban'); App.openCardModal(card.id); } });
+        Toast.show('Añadido a Ideación', 'success', { label: 'Abrir', handler: () => { App.switchView('kanban'); App.openCardModal(card.id); } });
       }
     });
   },
@@ -672,7 +672,7 @@ const App = {
   /* -------- DASHBOARD -------- */
   renderDashboard() {
     const today = new Date();
-    $('#dash-today').textContent = today.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    $('#dash-today').textContent = today.toLocaleDateString('es-ES',{ weekday: 'long', month: 'short', day: 'numeric' });
 
     // Stats
     const inFlight = State.cards.filter(c => !['published'].includes(c.status)).length;
@@ -685,10 +685,10 @@ const App = {
     const reachDelta = lastM && prevM ? Math.round(((lastM.reach - prevM.reach) / prevM.reach) * 100) : 0;
 
     const stats = [
-      { label: 'In flight', value: inFlight, delta: '+2 this week', dir: 'up', spark: sparkSVG([5,6,8,7,9,11,10,12]) },
-      { label: 'Scheduled', value: scheduled, delta: '7 days out', dir: '', spark: sparkSVG([2,3,2,4,3,5,4,6]) },
-      { label: 'Reach (wk)', value: lastM ? compact(lastM.reach) : '—', delta: (reachDelta >= 0 ? '+' : '') + reachDelta + '% vs last wk', dir: reachDelta >= 0 ? 'up' : 'down', spark: sparkSVG(State.metrics.map(m => m.reach)) },
-      { label: 'Briefs', value: briefs, delta: 'Library', dir: '', spark: sparkSVG([1,1,2,2,3,3,3,briefs]) },
+      { label: 'En curso', value: inFlight, delta: '+2 esta semana', dir: 'up', spark: sparkSVG([5,6,8,7,9,11,10,12]) },
+      { label: 'Programados', value: scheduled, delta: 'próximos 7 días', dir: '', spark: sparkSVG([2,3,2,4,3,5,4,6]) },
+      { label: 'Alcance (sem)', value: lastM ? compact(lastM.reach) : '—', delta: (reachDelta >= 0 ? '+' : '') + reachDelta + '% vs sem. anterior', dir: reachDelta >= 0 ? 'up' : 'down', spark: sparkSVG(State.metrics.map(m => m.reach)) },
+      { label: 'Briefs', value: briefs, delta: 'Biblioteca', dir: '', spark: sparkSVG([1,1,2,2,3,3,3,briefs]) },
     ];
     $('#stat-grid').innerHTML = stats.map(s => `
       <div class="stat">
@@ -709,13 +709,13 @@ const App = {
 
     const upcomingEl = $('#upcoming-list');
     if (!upcoming.length) {
-      upcomingEl.innerHTML = `<div class="empty-mini">${svgIcon('clock')}<div>Nothing scheduled in the next two weeks.</div></div>`;
+      upcomingEl.innerHTML = `<div class="empty-mini">${svgIcon('clock')}<div>Nada programado en las próximas dos semanas.</div></div>`;
     } else {
       upcomingEl.innerHTML = upcoming.map(c => `
         <div class="upcoming-row" data-card-id="${c.id}">
           <div class="upcoming-date">
             <div class="d">${c.dObj.getDate()}</div>
-            <div class="m">${c.dObj.toLocaleDateString(undefined, { month: 'short' })}</div>
+            <div class="m">${c.dObj.toLocaleDateString('es-ES',{ month: 'short' })}</div>
           </div>
           <div>
             <div class="upcoming-title">${escapeHtml(c.title)}</div>
@@ -743,7 +743,7 @@ const App = {
           <div class="activity-meta">${fmtRelative(a.at)}</div>
         </div>
       </div>
-    `).join('') : `<div class="empty-mini">${svgIcon('doc')}<div>No activity yet.</div></div>`;
+    `).join('') : `<div class="empty-mini">${svgIcon('doc')}<div>Aún no hay actividad.</div></div>`;
   },
 
   /* -------- BRIEFING ENGINE -------- */
@@ -751,7 +751,7 @@ const App = {
     const list = $('#brief-list');
     $('#brief-count-chip').innerHTML = `<span class="chip-dot"></span>${State.briefs.length} brief${State.briefs.length === 1 ? '' : 's'}`;
     if (!State.briefs.length) {
-      list.innerHTML = `<div class="empty-mini">${svgIcon('doc')}<div>Save your first brief and it will live here.</div></div>`;
+      list.innerHTML = `<div class="empty-mini">${svgIcon('doc')}<div>Guarda tu primer brief y aparecerá aquí.</div></div>`;
       return;
     }
     list.innerHTML = State.briefs.map(b => `
@@ -766,8 +766,8 @@ const App = {
           </div>
         </div>
         <div class="brief-row-actions">
-          <button class="btn" data-load="${b.id}">${svgIcon('edit')} Load</button>
-          <button class="btn" data-copy-brief="${b.id}">${svgIcon('copy')} Copy</button>
+          <button class="btn" data-load="${b.id}">${svgIcon('edit')} Cargar</button>
+          <button class="btn" data-copy-brief="${b.id}">${svgIcon('copy')} Copiar</button>
           <button class="btn btn-ghost btn-danger" data-del-brief="${b.id}">${svgIcon('trash')}</button>
         </div>
       </div>
@@ -782,15 +782,15 @@ const App = {
     const b = State.briefs.find(x => x.id === id);
     if (!b) return;
     const text = [
-      `Campaign: ${b.title}`,
-      `Platform: ${b.platform}`,
-      `Tone: ${b.tone}`,
-      `Objective: ${b.objective}`,
-      `Audience: ${b.audience}`,
-      `Key takeaways:\n${b.takeaways}`,
+      `Campaña: ${b.title}`,
+      `Plataforma: ${b.platform}`,
+      `Tono: ${b.tone}`,
+      `Objetivo: ${b.objective}`,
+      `Audiencia: ${b.audience}`,
+      `Puntos clave:\n${b.takeaways}`,
       `CTA: ${b.cta}`,
     ].join('\n\n');
-    copyText(text, () => Toast.show('Brief copied to clipboard', 'success'));
+    copyText(text, () => Toast.show('Brief copiado al portapapeles', 'success'));
   },
   copyBrief(id) {
     App.loadBrief(id);
@@ -801,7 +801,7 @@ const App = {
     const removed = State.briefs.splice(idx, 1)[0];
     State.save();
     App.renderBriefList();
-    Toast.show('Brief deleted', 'info', { label: 'Undo', handler: () => { State.briefs.unshift(removed); State.save(); App.renderBriefList(); } });
+    Toast.show('Brief eliminado', 'info', { label: 'Deshacer', handler: () => { State.briefs.unshift(removed); State.save(); App.renderBriefList(); } });
   },
 
   /* -------- KANBAN -------- */
@@ -824,7 +824,7 @@ const App = {
       (!search || c.title.toLowerCase().includes(search) || (c.content || '').toLowerCase().includes(search))
     );
 
-    $('#kanban-count').textContent = `${filtered.length} task${filtered.length === 1 ? '' : 's'}`;
+    $('#kanban-count').textContent = `${filtered.length} ${filtered.length === 1 ? 'tarea' : 'tareas'}`;
 
     board.innerHTML = STATUSES.map(s => {
       const cards = filtered.filter(c => c.status === s.id);
@@ -838,7 +838,7 @@ const App = {
           <div class="kanban-list" data-status="${s.id}">
             <label class="quick-add-card">
               ${svgIcon('plus')}
-              <input type="text" placeholder="New task…" data-col-add="${s.id}" />
+              <input type="text" placeholder="Nueva tarea…" data-col-add="${s.id}" />
               <span class="kbd">↵</span>
             </label>
             ${cards.map(c => renderCard(c)).join('')}
@@ -864,13 +864,13 @@ const App = {
         if (newIdx < 0 || newIdx >= STATUSES.length) return;
         const prev = c.status;
         c.status = STATUSES[newIdx].id;
-        State.pushActivity(`Moved "<span class="em">${escapeHtml(c.title)}</span>" → ${statusLabel(c.status)}`, 'arrow');
+        State.pushActivity(`Movió "<span class="em">${escapeHtml(c.title)}</span>" → ${statusLabel(c.status)}`, 'arrow');
         State.save();
         DB.saveCard(c).catch(devWarn);
         App.renderKanban();
         App.renderDashboard();
-        Toast.show(`Moved to ${statusLabel(c.status)}`, 'info', {
-          label: 'Undo',
+        Toast.show(`Movido a ${statusLabel(c.status)}`, 'info', {
+          label: 'Deshacer',
           handler: () => { c.status = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderKanban(); App.renderDashboard(); }
         });
         setTimeout(() => {
@@ -886,11 +886,11 @@ const App = {
         if (e.key === 'Enter' && input.value.trim()) {
           const card = {
             id: uid('c_'), title: input.value.trim(), status: input.dataset.colAdd,
-            assignee: 'Member 1', platform: $('#filter-platform').value !== 'all' ? $('#filter-platform').value : 'LinkedIn',
+            assignee: 'Miembro 1', platform: $('#filter-platform').value !== 'all' ? $('#filter-platform').value : 'LinkedIn',
             date: '', content: '', figma: '', canva: '', createdAt: Date.now()
           };
           State.cards.unshift(card);
-          State.pushActivity(`Added "<span class="em">${escapeHtml(card.title)}</span>" to ${statusLabel(card.status)}`, 'plus');
+          State.pushActivity(`Añadió "<span class="em">${escapeHtml(card.title)}</span>" a ${statusLabel(card.status)}`, 'plus');
           State.save();
           DB.saveCard(card).catch(devWarn);
           input.value = '';
@@ -912,10 +912,10 @@ const App = {
 
     $('#c-bloom-btn').addEventListener('click', () => {
       const prompt = $('#c-visual-prompt').value.trim();
-      if (!prompt) { Toast.show('Add a visual prompt first', 'warn'); return; }
+      if (!prompt) { Toast.show('Añade primero un prompt visual', 'warn'); return; }
       copyText(prompt, () => {});
       window.open('https://www.trybloom.ai/', '_blank', 'noopener');
-      Toast.show('Visual prompt copied — paste it in Bloom', 'info');
+      Toast.show('Prompt visual copiado — pégalo en Bloom', 'info');
     });
   },
 
@@ -925,7 +925,7 @@ const App = {
     $('#c-id').value = card ? card.id : '';
     $('#c-title').value = card ? card.title : '';
     $('#c-status').value = card ? card.status : 'ideation';
-    $('#c-assignee').value = card ? card.assignee : 'Member 1';
+    $('#c-assignee').value = card ? card.assignee : 'Miembro 1';
     $('#c-platform').value = card ? card.platform : 'LinkedIn';
     $('#c-date').value = card ? (card.date || '') : '';
     $('#c-figma').value = card ? (card.figma || '') : '';
@@ -934,7 +934,7 @@ const App = {
     $('#c-visual-prompt').value = card ? (card.visualPrompt || '') : '';
     $('#c-content').value = card ? (card.content || '') : '';
     $('#c-delete').style.display = card ? 'inline-flex' : 'none';
-    $('#c-meta').textContent = card ? `Created ${fmtRelative(card.createdAt)}` : 'New task';
+    $('#c-meta').textContent = card ? `Creado ${fmtRelative(card.createdAt)}` : 'Nueva tarea';
     $('#card-scrim').classList.add('open');
     setTimeout(() => { $('#c-title').focus(); App._focusTrap = trapFocus($('#card-modal')); }, 50);
   },
@@ -955,7 +955,7 @@ const App = {
     panel.innerHTML = `
       <div class="bp-head">
         <div class="bp-title-block">
-          <div class="bp-title">Push to Buffer</div>
+          <div class="bp-title">Enviar a Buffer</div>
           <div class="bp-sub">${escapeHtml(card.title)} &middot; ${escapeHtml(card.platform)}</div>
         </div>
         <button class="icon-btn" id="bp-close">
@@ -965,7 +965,7 @@ const App = {
       <div class="bp-body">
         <div class="bp-copy-preview">${escapeHtml(card.content.slice(0, 200))}${card.content.length > 200 ? '…' : ''}</div>
         ${hasMedia ? `
-        <div class="bp-section-label">Media &middot; ${card.mediaUrls.length} file${card.mediaUrls.length !== 1 ? 's' : ''}</div>
+        <div class="bp-section-label">Medios &middot; ${card.mediaUrls.length} archivo${card.mediaUrls.length !== 1 ? 's' : ''}</div>
         <div class="bp-media-list">
           ${card.mediaUrls.map((url, i) => {
             const isVideo = /\.(mp4|mov|webm|avi)(\?|$)/i.test(url);
@@ -975,23 +975,23 @@ const App = {
                 ? `<div class="bp-media-icon">${svgIcon('send')}</div>`
                 : `<img class="bp-media-thumb" src="${escapeHtml(url)}" alt="" loading="lazy" />`}
               <span class="bp-media-url" title="${escapeHtml(url)}">${escapeHtml(short)}</span>
-              <button class="btn bp-copy-btn" data-url="${escapeHtml(url)}" data-idx="${i}">Copy URL</button>
+              <button class="btn bp-copy-btn" data-url="${escapeHtml(url)}" data-idx="${i}">Copiar URL</button>
             </div>`;
           }).join('')}
         </div>
-        <p class="bp-hint">In Buffer, click the image icon in the composer and paste each URL.</p>
-        ` : `<p class="bp-hint">No media attached — copy only.</p>`}
+        <p class="bp-hint">En Buffer, haz clic en el icono de imagen del editor y pega cada URL.</p>
+        ` : `<p class="bp-hint">Sin medios adjuntos — solo texto.</p>`}
       </div>
       <div class="bp-foot">
-        <button class="btn" id="bp-cancel">Cancel</button>
-        ${card.status === 'scheduled' ? `<button class="btn bp-mark-published-btn" id="bp-mark-published">Mark as Published</button>` : ''}
+        <button class="btn" id="bp-cancel">Cancelar</button>
+        ${card.status === 'scheduled' ? `<button class="btn bp-mark-published-btn" id="bp-mark-published">Marcar como publicado</button>` : ''}
         ${isMeta ? `<button class="btn brand-meta" id="bp-meta">
           <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
           Meta Business Suite
         </button>` : ''}
         <a class="btn btn-primary" href="${escapeHtml(bufferUrl)}" target="_blank" rel="noopener" id="bp-open">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Open Buffer
+          Abrir Buffer
         </a>
       </div>
     `;
@@ -1007,15 +1007,15 @@ const App = {
       metaBtn.addEventListener('click', () => {
         copyText(card.content, () => {});
         window.open('https://business.facebook.com/latest/composer/', '_blank', 'noopener');
-        Toast.show('Copy pasted to clipboard — paste in Meta composer', 'info');
+        Toast.show('Texto copiado al portapapeles — pégalo en el editor de Meta', 'info');
       });
     }
 
     panel.querySelectorAll('.bp-copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         copyText(btn.dataset.url, () => {
-          btn.textContent = 'Copied!';
-          setTimeout(() => { btn.textContent = 'Copy URL'; }, 1800);
+          btn.textContent = '¡Copiado!';
+          setTimeout(() => { btn.textContent = 'Copiar URL'; }, 1800);
         });
       });
     });
@@ -1027,13 +1027,13 @@ const App = {
         if (!c) return;
         c.status = 'published';
         c.publishedAt = new Date().toISOString();
-        State.pushActivity(`Published "<span class="em">${escapeHtml(c.title)}</span>" via Buffer`, 'send');
+        State.pushActivity(`Publicó "<span class="em">${escapeHtml(c.title)}</span>" vía Buffer`, 'send');
         State.save();
         DB.saveCard(c).catch(devWarn);
         App.closeBufferPush();
         App.renderKanban();
         App.renderDashboard();
-        Toast.show('Published!', 'success');
+        Toast.show('¡Publicado!', 'success');
       });
     }
   },
@@ -1074,16 +1074,16 @@ const App = {
       iso = new Date().toISOString();
     } else {
       const val = $('#schedule-datetime').value;
-      if (!val) { Toast.show('Pick a date and time', 'warn'); return; }
+      if (!val) { Toast.show('Elige una fecha y hora', 'warn'); return; }
       const parsed = new Date(val);
-      if (isNaN(parsed)) { Toast.show('Invalid date', 'warn'); return; }
+      if (isNaN(parsed)) { Toast.show('Fecha inválida', 'warn'); return; }
       iso = parsed.toISOString();
     }
     c.scheduledFor = iso;
     c.date = iso.slice(0, 10);
     c.status = 'scheduled';
     State.pushActivity(
-      `Scheduled "<span class="em">${escapeHtml(c.title)}</span>" for ${publishNow ? 'Buffer (now)' : fmtDatetime(iso)}`,
+      `Programó "<span class="em">${escapeHtml(c.title)}</span>" para ${publishNow ? 'Buffer (ahora)' : fmtDatetime(iso)}`,
       'clock'
     );
     State.save();
@@ -1095,7 +1095,7 @@ const App = {
     if (publishNow) {
       this.openBufferPush(c);
     } else {
-      Toast.show(`Scheduled for ${fmtDatetime(iso)}`, 'success');
+      Toast.show(`Programado para ${fmtDatetime(iso)}`, 'success');
     }
   },
 
@@ -1126,7 +1126,7 @@ const App = {
     if (due.length === 0) return;
     App.renderKanban();
     Toast.show(
-      `${due.length} post${due.length > 1 ? 's' : ''} ready — publish via Buffer`,
+      `${due.length} post${due.length > 1 ? 's' : ''} listo${due.length > 1 ? 's' : ''} — publica vía Buffer`,
       'warn',
       { label: 'Kanban', handler: () => App.switchView('kanban') }
     );
@@ -1134,7 +1134,7 @@ const App = {
 
   saveCard() {
     const title = $('#c-title').value.trim();
-    if (!title) { Toast.show('Add a title first', 'warn'); $('#c-title').focus(); return; }
+    if (!title) { Toast.show('Añade primero un título', 'warn'); $('#c-title').focus(); return; }
     const data = {
       title,
       status: $('#c-status').value,
@@ -1153,14 +1153,14 @@ const App = {
       if (i > -1) {
         const prevStatus = State.cards[i].status;
         State.cards[i] = { ...State.cards[i], ...data };
-        if (prevStatus !== data.status) State.pushActivity(`Moved "<span class="em">${escapeHtml(title)}</span>" to ${statusLabel(data.status)}`, 'arrow');
-        else State.pushActivity(`Updated "<span class="em">${escapeHtml(title)}</span>"`, 'edit');
+        if (prevStatus !== data.status) State.pushActivity(`Movió "<span class="em">${escapeHtml(title)}</span>" a ${statusLabel(data.status)}`, 'arrow');
+        else State.pushActivity(`Actualizó "<span class="em">${escapeHtml(title)}</span>"`, 'edit');
         DB.saveCard(State.cards[i]).catch(devWarn);
       }
     } else {
       const newCard = { id: uid('c_'), ...data, createdAt: Date.now() };
       State.cards.unshift(newCard);
-      State.pushActivity(`Created "<span class="em">${escapeHtml(title)}</span>"`, 'plus');
+      State.pushActivity(`Creó "<span class="em">${escapeHtml(title)}</span>"`, 'plus');
       DB.saveCard(newCard).catch(devWarn);
     }
     State.save();
@@ -1168,7 +1168,7 @@ const App = {
     App.renderDashboard();
     App.renderCalendar();
     App.closeCardModal();
-    Toast.show(App.cardEditingId ? 'Task updated' : 'Task created', 'success');
+    Toast.show(App.cardEditingId ? 'Tarea actualizada' : 'Tarea creada', 'success');
   },
 
   deleteCard() {
@@ -1176,14 +1176,14 @@ const App = {
     const i = State.cards.findIndex(c => c.id === App.cardEditingId);
     if (i < 0) return;
     const removed = State.cards.splice(i, 1)[0];
-    State.pushActivity(`Deleted "<span class="em">${escapeHtml(removed.title)}</span>"`, 'trash');
+    State.pushActivity(`Eliminó "<span class="em">${escapeHtml(removed.title)}</span>"`, 'trash');
     State.save();
     DB.deleteCard(removed).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
     App.renderCalendar();
     App.closeCardModal();
-    Toast.show('Task deleted', 'info', { label: 'Undo', handler: () => { State.cards.splice(i, 0, removed); State.save(); App.renderKanban(); App.renderDashboard(); App.renderCalendar(); } });
+    Toast.show('Tarea eliminada', 'info', { label: 'Deshacer', handler: () => { State.cards.splice(i, 0, removed); State.save(); App.renderKanban(); App.renderDashboard(); App.renderCalendar(); } });
   },
 
   /* -------- CALENDAR -------- */
@@ -1199,7 +1199,7 @@ const App = {
     const year = App.calDate.getFullYear();
     const today = new Date(); today.setHours(0,0,0,0);
 
-    $('#cal-month-year').innerHTML = `${App.calDate.toLocaleString(undefined, { month: 'long' })} <span class="year">${year}</span>`;
+    $('#cal-month-year').innerHTML = `${App.calDate.toLocaleString('es-ES', { month: 'long' })} <span class="year">${year}</span>`;
 
     const first = new Date(year, month, 1);
     const startDow = first.getDay();
@@ -1207,7 +1207,7 @@ const App = {
     const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
 
     const grid = $('#cal-grid');
-    const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dows = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
 
     for (let i = 0; i < totalCells; i++) {
@@ -1240,7 +1240,7 @@ const App = {
                 ${actions}
               </div>`;
             }).join('')}
-            ${overflow > 0 ? `<div class="cal-more">+${overflow} more</div>` : ''}
+            ${overflow > 0 ? `<div class="cal-more">+${overflow} más</div>` : ''}
           </div>
         </div>
       `;
@@ -1282,7 +1282,7 @@ const App = {
         if (!c) return;
         copyText(c.content, () => {});
         window.open('https://business.facebook.com/latest/composer/', '_blank', 'noopener');
-        Toast.show('Copy pasted to clipboard — paste in Meta composer', 'info');
+        Toast.show('Texto copiado al portapapeles — pégalo en el editor de Meta', 'info');
       });
     });
 
@@ -1300,10 +1300,10 @@ const App = {
     const prev = State.metrics[State.metrics.length - 2] || last;
     const pct = (a, b) => b ? Math.round(((a - b) / b) * 100) : 0;
     const tiles = [
-      { label: 'Reach', value: compact(last.reach), delta: pct(last.reach, prev.reach), dir: 'up' },
-      { label: 'Engagement', value: compact(last.engage), delta: pct(last.engage, prev.engage), dir: 'up' },
-      { label: 'Followers', value: compact(last.followers), delta: pct(last.followers, prev.followers), dir: 'up' },
-      { label: 'Eng. rate', value: last.reach ? ((last.engage / last.reach) * 100).toFixed(1) + '%' : '—', delta: pct((last.engage / last.reach), (prev.engage / prev.reach)) || 0, dir: '' },
+      { label: 'Alcance', value: compact(last.reach), delta: pct(last.reach, prev.reach), dir: 'up' },
+      { label: 'Interacción', value: compact(last.engage), delta: pct(last.engage, prev.engage), dir: 'up' },
+      { label: 'Seguidores', value: compact(last.followers), delta: pct(last.followers, prev.followers), dir: 'up' },
+      { label: 'Tasa de interacción', value: last.reach ? ((last.engage / last.reach) * 100).toFixed(1) + '%' : '—', delta: pct((last.engage / last.reach), (prev.engage / prev.reach)) || 0, dir: '' },
     ];
     $('#analytics-stat-grid').innerHTML = tiles.map(t => {
       const d = t.delta || 0;
@@ -1313,7 +1313,7 @@ const App = {
         <div class="stat">
           <div class="stat-label">${t.label}</div>
           <div class="stat-value">${t.value}</div>
-          <div class="stat-delta ${cls}">${d !== 0 ? (d > 0 ? '↑' : '↓') + ' ' + sign + d + '%' : '—'} vs last wk</div>
+          <div class="stat-delta ${cls}">${d !== 0 ? (d > 0 ? '↑' : '↓') + ' ' + sign + d + '%' : '—'} vs sem. anterior</div>
         </div>
       `;
     }).join('');
@@ -1335,7 +1335,7 @@ const App = {
         <div class="bar-track"><div class="bar-fill" style="width: ${(t.eng / max) * 100}%;"></div></div>
         <div class="bar-val">${compact(t.eng)}</div>
       </div>
-    `).join('') : `<div class="empty-mini">${svgIcon('chart')}<div>Publish posts to see engagement here.</div></div>`;
+    `).join('') : `<div class="empty-mini">${svgIcon('chart')}<div>Publica posts para ver la interacción aquí.</div></div>`;
 
     // Platform breakdown
     const breakdownEl = $('#platform-breakdown');
@@ -1348,11 +1348,11 @@ const App = {
       });
       const entries = Object.entries(byPlatform);
       if (!entries.length) {
-        breakdownEl.innerHTML = `<div class="empty-mini">${svgIcon('chart')}<div>Log metrics with a platform to see breakdown.</div></div>`;
+        breakdownEl.innerHTML = `<div class="empty-mini">${svgIcon('chart')}<div>Registra métricas con plataforma para ver el desglose.</div></div>`;
       } else {
         const PLAT_LABEL = { instagram: 'Instagram', linkedin: 'LinkedIn', x_twitter: 'X / Twitter', tiktok: 'TikTok', facebook: 'Facebook' };
         breakdownEl.innerHTML = `<table class="breakdown-table">
-          <thead><tr><th>Platform</th><th>Reach</th><th>Engagement</th><th>Eng. rate</th><th>Week of</th></tr></thead>
+          <thead><tr><th>Plataforma</th><th>Alcance</th><th>Interacción</th><th>Tasa</th><th>Semana de</th></tr></thead>
           <tbody>${entries.map(([platform, m]) => `<tr>
             <td>${escapeHtml(PLAT_LABEL[platform] || platform)}</td>
             <td>${compact(m.reach || 0)}</td>
@@ -1365,17 +1365,17 @@ const App = {
     }
 
     // sync meta hint
-    $('#meta-sync-meta').textContent = State.settings.lastMetaSync ? fmtRelative(State.settings.lastMetaSync) : 'Never';
+    $('#meta-sync-meta').textContent = State.settings.lastMetaSync ? fmtRelative(State.settings.lastMetaSync) : 'Nunca';
   },
 
   async metaSync() {
     const { metaToken, metaPageId, instagramId } = State.settings;
     if (!metaToken) {
-      Toast.show('Add a Meta access token in Integrations first', 'warn', { label: 'Open', handler: () => App.switchView('settings') });
+      Toast.show('Añade primero un token de acceso de Meta en Integraciones', 'warn', { label: 'Abrir', handler: () => App.switchView('settings') });
       return;
     }
     if (!metaPageId && !instagramId) {
-      Toast.show('Add a Page ID or Instagram ID in Integrations first', 'warn', { label: 'Open', handler: () => App.switchView('settings') });
+      Toast.show('Añade primero un ID de Página o de Instagram en Integraciones', 'warn', { label: 'Abrir', handler: () => App.switchView('settings') });
       return;
     }
 
@@ -1383,7 +1383,7 @@ const App = {
     const syncSvg  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></svg>';
     const btn = $('#meta-sync-btn');
     btn.disabled = true;
-    btn.innerHTML = `${spinSvg} Syncing…`;
+    btn.innerHTML = `${spinSvg} Sincronizando…`;
 
     const today = new Date().toISOString().slice(0, 10);
     const results = [];
@@ -1424,10 +1424,10 @@ const App = {
     }
 
     btn.disabled = false;
-    btn.innerHTML = `${syncSvg} Sync Meta <span class="kbd">${fmtRelative(Date.now())}</span>`;
+    btn.innerHTML = `${syncSvg} Sincronizar Meta <span class="kbd">${fmtRelative(Date.now())}</span>`;
 
     if (!results.length) {
-      Toast.show('Sync failed — ' + errors[0], 'error');
+      Toast.show('Error de sincronización — ' + errors[0], 'error');
       return;
     }
 
@@ -1444,8 +1444,8 @@ const App = {
     App.renderAnalytics();
 
     const synced = results.map(r => r.platform).join(' + ');
-    const errNote = errors.length ? ` · ${errors.length} error(s)` : '';
-    Toast.show(`Synced ${synced}${errNote}`, errors.length ? 'warn' : 'success');
+    const errNote = errors.length ? ` · ${errors.length} error(es)` : '';
+    Toast.show(`Sincronizado ${synced}${errNote}`, errors.length ? 'warn' : 'success');
   },
 
   /* -------- INTEGRATIONS -------- */
@@ -1461,7 +1461,7 @@ const App = {
       State.settings.metaToken   = $('#set-meta-token').value.trim();
       State.save();
       App.renderIntegrationStatus();
-      Toast.show('Meta keys saved (stored locally)', 'success');
+      Toast.show('Claves de Meta guardadas (almacenadas localmente)', 'success');
     });
 
     $('#buffer-form').addEventListener('submit', (e) => {
@@ -1471,7 +1471,7 @@ const App = {
       State.settings.bufferProfileId = match ? match[1] : raw;
       State.save();
       App.renderIntegrationStatus();
-      Toast.show('Buffer profile saved', 'success');
+      Toast.show('Perfil de Buffer guardado', 'success');
     });
     App.renderIntegrationStatus();
   },
@@ -1481,12 +1481,12 @@ const App = {
     const supaConnected    = !!window.BluvideoSupabase?.supabase;
     const bufferConfigured = !!State.settings.bufferProfileId;
     $('#meta-status').classList.toggle('connected', !!metaConnected);
-    $('#meta-status').textContent = metaConnected ? 'Connected' : 'Disconnected';
+    $('#meta-status').textContent = metaConnected ? 'Conectado' : 'Desconectado';
     if ($('#buffer-status')) {
       $('#buffer-status').classList.toggle('connected', bufferConfigured);
-      $('#buffer-status').textContent = bufferConfigured ? 'Configured' : 'Not configured';
+      $('#buffer-status').textContent = bufferConfigured ? 'Configurado' : 'Sin configurar';
     }
-    if ($('#ws-status-txt')) $('#ws-status-txt').textContent = supaConnected ? 'Cloud · synced' : 'Local · synced';
+    if ($('#ws-status-txt')) $('#ws-status-txt').textContent = supaConnected ? 'Nube · sincronizado' : 'Local · sincronizado';
   },
 
   /* -------- WEEKLY PLANNER -------- */
@@ -1501,11 +1501,11 @@ const App = {
     $('#mp-save').addEventListener('click', () => App.saveWeeklyPlan());
     $('#mp-generate').addEventListener('click', () => App.generateWeekPrompt());
     $('#mp-copy-prompt').addEventListener('click', () => {
-      copyText($('#mp-prompt-body').textContent, () => Toast.show('Week prompt copied', 'success'));
+      copyText($('#mp-prompt-body').textContent, () => Toast.show('Prompt semanal copiado', 'success'));
     });
     $('#mp-send-claude').addEventListener('click', () => {
       copyText($('#mp-prompt-body').textContent, () => {
-        Toast.show('Prompt copied — opening Claude…', 'info');
+        Toast.show('Prompt copiado — abriendo Claude…', 'info');
         setTimeout(() => window.open('https://claude.ai/new', '_blank', 'noopener'), 250);
       });
     });
@@ -1519,26 +1519,29 @@ const App = {
     if (!raw) { el.textContent = ''; return; }
     try {
       const items = JSON.parse(raw);
-      if (!Array.isArray(items)) { el.textContent = 'Expected a JSON array'; return; }
-      el.textContent = `${items.length} post${items.length !== 1 ? 's' : ''} detected`;
+      if (!Array.isArray(items)) { el.textContent = 'Se esperaba un arreglo JSON'; return; }
+      el.textContent = `${items.length} post${items.length !== 1 ? 's' : ''} detectado${items.length !== 1 ? 's' : ''}`;
     } catch {
-      el.textContent = 'Invalid JSON';
+      el.textContent = 'JSON inválido';
     }
   },
 
   importClaudeJson() {
     const raw = $('#mp-import-json').value.trim();
-    if (!raw) { Toast.show('Paste a JSON array first', 'warn'); return; }
+    if (!raw) { Toast.show('Pega primero un arreglo JSON', 'warn'); return; }
     let items;
     try {
       items = JSON.parse(raw);
       if (!Array.isArray(items)) throw new Error('not an array');
     } catch {
-      Toast.show('Invalid JSON — expected an array of objects', 'error'); return;
+      Toast.show('JSON inválido — se esperaba un arreglo de objetos', 'error'); return;
     }
 
     const today = new Date();
-    const DAY_MAP = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+    const DAY_MAP = {
+      sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
+      domingo: 0, lunes: 1, martes: 2, 'miércoles': 3, miercoles: 3, jueves: 4, viernes: 5, 'sábado': 6, sabado: 6,
+    };
     const dayOffset = (dayName) => {
       const target = DAY_MAP[(dayName || '').toLowerCase()];
       if (target === undefined) return 0;
@@ -1562,7 +1565,7 @@ const App = {
         format: item.format || 'text',
         content: copy,
         date: postDate.toISOString().slice(0, 10),
-        assignee: 'Member 1',
+        assignee: 'Miembro 1',
         figma: '',
         canva: '',
         visualPrompt: item.visual_prompt || '',
@@ -1573,14 +1576,14 @@ const App = {
       created++;
     });
 
-    if (created === 0) { Toast.show('No valid items found in JSON', 'warn'); return; }
-    State.pushActivity(`Imported ${created} card${created !== 1 ? 's' : ''} from Claude output`, 'pen');
+    if (created === 0) { Toast.show('No se encontraron elementos válidos en el JSON', 'warn'); return; }
+    State.pushActivity(`Importó ${created} tarjeta${created !== 1 ? 's' : ''} desde la salida de Claude`, 'pen');
     State.save();
     App.renderKanban();
     App.renderDashboard();
     $('#mp-import-json').value = '';
     $('#mp-import-preview').textContent = '';
-    Toast.show(`${created} card${created !== 1 ? 's' : ''} added to Kanban → Drafting`, 'success', { label: 'Go to Kanban', handler: () => App.switchView('kanban') });
+    Toast.show(`${created} tarjeta${created !== 1 ? 's' : ''} añadida${created !== 1 ? 's' : ''} al Kanban → Borrador`, 'success', { label: 'Ir al Kanban', handler: () => App.switchView('kanban') });
   },
 
   weeklyPlanValues() {
@@ -1595,8 +1598,8 @@ const App = {
 
   saveWeeklyPlan() {
     const v = App.weeklyPlanValues();
-    if (!v.weekStart) { Toast.show('Select a week first', 'warn'); return; }
-    if (!v.goals) { Toast.show('Add week goals first', 'warn'); $('#mp-goals').focus(); return; }
+    if (!v.weekStart) { Toast.show('Selecciona primero una semana', 'warn'); return; }
+    if (!v.goals) { Toast.show('Añade primero los objetivos de la semana', 'warn'); $('#mp-goals').focus(); return; }
 
     const existing = State.weeklyPlans.findIndex(p => p.weekStart === v.weekStart);
     if (existing > -1) {
@@ -1607,91 +1610,91 @@ const App = {
       State.weeklyPlans.unshift(plan);
       DB.saveWeeklyPlan(plan).catch(devWarn);
     }
-    State.pushActivity(`Saved weekly plan for <span class="em">${v.weekStart}</span>`, 'doc');
+    State.pushActivity(`Guardó el plan semanal de <span class="em">${v.weekStart}</span>`, 'doc');
     State.save();
     App.renderWeeklyPlanList();
     App.renderDashboard();
-    Toast.show('Weekly plan saved', 'success');
+    Toast.show('Plan semanal guardado', 'success');
   },
 
   generateWeekPrompt() {
     const v = App.weeklyPlanValues();
-    if (!v.goals && !v.topics) { Toast.show('Fill in goals and topics first', 'warn'); return; }
+    if (!v.goals && !v.topics) { Toast.show('Completa primero los objetivos y temas', 'warn'); return; }
 
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
-    const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const fmt = d => d.toLocaleDateString('es-ES',{ month: 'short', day: 'numeric' });
     const weekRange = fmt(weekStart) + ' – ' + fmt(weekEnd) + ', ' + weekEnd.getFullYear();
 
     const topPosts = State.cards
       .filter(c => c.status === 'published' && c.content)
       .slice(0, 3)
       .map(c => `• ${c.platform}: "${c.title}"`)
-      .join('\n') || 'None yet — this will be the first batch.';
+      .join('\n') || 'Ninguno todavía — este será el primer lote.';
 
     const selectedPlatforms = v.platforms.length ? v.platforms : ['LinkedIn', 'Instagram', 'X (Twitter)'];
     const platformList = selectedPlatforms.join(', ');
     const week = v.weekStart || now.toISOString().slice(0, 10).slice(0, 7);
 
     const DISTRIBUTION = {
-      'Instagram':   '10 posts → 5 gráfico (single-image graphic) + 5 carrusel',
-      'X (Twitter)': '10 posts → 7 thread/text + 3 carrusel (image carousel)',
+      'Instagram':   '10 posts → 5 gráfico (imagen única) + 5 carrusel',
+      'X (Twitter)': '10 posts → 7 thread/texto + 3 carrusel (carrusel de imágenes)',
       'LinkedIn':    '10 posts → 7 texto + 3 carrusel',
-      'TikTok':      '5 posts → short-form video',
+      'TikTok':      '5 posts → video de formato corto',
     };
     const platformDistLines = selectedPlatforms
       .map(p => `- ${p}: ${DISTRIBUTION[p] || '10 posts'}`)
       .join('\n');
 
-    const prompt = `You are a social media strategist for Bluveo — an AI lab that builds intelligent websites, apps, and automated marketing systems.
+    const prompt = `Eres un estratega de redes sociales para Bluveo — un laboratorio de IA que crea sitios web, apps y sistemas de marketing automatizados inteligentes.
 
-USE YOUR PLUGINS TO BUILD THIS OUTPUT:
-- Use the MARKETING plugin to research angles, sharpen the hooks and copy, and align each post with the week goals and audience.
-- Use the DESIGN plugin to define the visual direction for every "graphic" and "carousel" post (layout, composition, color, and slide breakdown for carousels).
-- Run both plugins BEFORE writing the final JSON, then fold their results into the "copy" and "visual_prompt" fields. Return only the final JSON array.
+USA TUS PLUGINS PARA CONSTRUIR ESTE RESULTADO:
+- Usa el plugin de MARKETING para investigar ángulos, afinar los ganchos y el texto, y alinear cada post con los objetivos de la semana y la audiencia.
+- Usa el plugin de DISEÑO para definir la dirección visual de cada post "graphic" y "carousel" (layout, composición, color y desglose de diapositivas para los carruseles).
+- Ejecuta ambos plugins ANTES de escribir el JSON final, luego integra sus resultados en los campos "copy" y "visual_prompt". Devuelve únicamente el arreglo JSON final.
 
-WEEK: ${week} (${weekRange})
-PLATFORMS: ${platformList}
+SEMANA: ${week} (${weekRange})
+PLATAFORMAS: ${platformList}
 
-WEEK GOALS:
-${v.goals || '[no goals set]'}
+OBJETIVOS DE LA SEMANA:
+${v.goals || '[sin objetivos definidos]'}
 
-KEY TOPICS THIS WEEK:
-${v.topics || '[no topics set]'}
+TEMAS CLAVE DE ESTA SEMANA:
+${v.topics || '[sin temas definidos]'}
 
-TONE GUIDANCE:
-${v.tone || 'Confident and plain-spoken. No buzzwords. Lead with insight, not promotion.'}
+GUÍA DE TONO:
+${v.tone || 'Seguro y claro. Sin tecnicismos vacíos. Liderar con criterio, no con promoción.'}
 
-RECENT TOP PERFORMERS (for reference, do not repeat):
+MEJORES POSTS RECIENTES (como referencia, no repetir):
 ${topPosts}
 
 ---
 
-Generate 10 social media posts per selected platform for the week of ${weekRange}.
+Genera 10 posts de redes sociales por cada plataforma seleccionada para la semana del ${weekRange}.
 
-FORMAT DISTRIBUTION RULES (hardcoded — do not change these ratios):
+REGLAS DE DISTRIBUCIÓN DE FORMATO (fijas — no cambies estas proporciones):
 ${platformDistLines}
 
-Format values:
-- "graphic"  → single static image post (Instagram only)
-- "carousel" → multi-slide carousel
-- "text"     → text-only post (LinkedIn)
-- "thread"   → Twitter/X thread or long-form text
+Valores de formato:
+- "graphic"  → post de imagen única estática (solo Instagram)
+- "carousel" → carrusel de varias diapositivas
+- "text"     → post solo de texto (LinkedIn)
+- "thread"   → hilo de Twitter/X o texto largo
 
-Rules:
-- Each post stands alone (no "as mentioned" or "last week" references)
-- LinkedIn: insight-led, professional, no hashtags, max 1500 chars
-- Instagram: visual-forward caption, 3–5 hashtags, conversational
-- X/Twitter: threads open with a strong hook, max 280 chars per tweet
-- TikTok: short hook-driven caption, 1–3 hashtags; put the video concept/script beats in "visual_prompt"
-- Match the tone guidance exactly — no buzzwords, no exclamation marks
-- Open with a concrete observation or fact, not a question
-- Assign day: spread posts across Mon–Fri, 2 posts/day per platform
+Reglas:
+- Cada post se sostiene por sí solo (sin referencias del tipo "como mencioné" o "la semana pasada")
+- LinkedIn: con criterio, profesional, sin hashtags, máximo 1500 caracteres
+- Instagram: caption visual, 3–5 hashtags, conversacional
+- X/Twitter: los hilos abren con un gancho fuerte, máximo 280 caracteres por tweet
+- TikTok: caption corto con gancho, 1–3 hashtags; pon el concepto/guion del video en "visual_prompt"
+- Respeta la guía de tono exactamente — sin tecnicismos vacíos, sin signos de exclamación
+- Abre con una observación o dato concreto, no con una pregunta
+- Asigna el día: reparte los posts de lunes a viernes, 2 posts/día por plataforma
 
-Return a JSON array — one object per post:
+Devuelve un arreglo JSON — un objeto por post (conserva las claves en inglés tal cual):
 [
   {
     "platform": "LinkedIn",
@@ -1706,7 +1709,7 @@ Return a JSON array — one object per post:
     $('#mp-prompt-body').textContent = prompt;
     $('#mp-prompt-card').style.display = 'block';
     $('#mp-prompt-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    Toast.show('Week prompt generated', 'success');
+    Toast.show('Prompt semanal generado', 'success');
   },
 
   renderWeeklyPlanList() {
@@ -1714,9 +1717,9 @@ Return a JSON array — one object per post:
     if (!el) return;
     const plans = State.weeklyPlans;
     const countEl = $('#mp-plans-count');
-    if (countEl) countEl.innerHTML = `<span class="chip-dot"></span>${plans.length} plan${plans.length === 1 ? '' : 's'}`;
+    if (countEl) countEl.innerHTML = `<span class="chip-dot"></span>${plans.length} ${plans.length === 1 ? 'plan' : 'planes'}`;
     if (!plans.length) {
-      el.innerHTML = `<div class="empty-mini">${svgIcon('doc')}<div>No weekly plans saved yet. Fill in the form above and hit Save plan.</div></div>`;
+      el.innerHTML = `<div class="empty-mini">${svgIcon('doc')}<div>Aún no hay planes semanales guardados. Completa el formulario de arriba y pulsa Guardar plan.</div></div>`;
       return;
     }
     el.innerHTML = plans.map(p => `
@@ -1728,9 +1731,9 @@ Return a JSON array — one object per post:
         </div>
         <div class="plan-row-actions">
           <button class="btn" data-load-plan="${p.id}">
-            ${svgIcon('edit')} Load
+            ${svgIcon('edit')} Cargar
           </button>
-          <button class="btn btn-ghost btn-danger" data-del-plan="${p.id}" title="Delete">${svgIcon('trash')}</button>
+          <button class="btn btn-ghost btn-danger" data-del-plan="${p.id}" title="Eliminar">${svgIcon('trash')}</button>
         </div>
       </div>
     `).join('');
@@ -1744,8 +1747,8 @@ Return a JSON array — one object per post:
           const removed = State.weeklyPlans.splice(idx, 1)[0];
           State.save();
           App.renderWeeklyPlanList();
-          Toast.show('Plan deleted', 'info', {
-            label: 'Undo',
+          Toast.show('Plan eliminado', 'info', {
+            label: 'Deshacer',
             handler: () => { State.weeklyPlans.splice(idx, 0, removed); State.save(); App.renderWeeklyPlanList(); }
           });
         }
@@ -1763,7 +1766,7 @@ Return a JSON array — one object per post:
     if (p.platforms) {
       $$('#mp-platforms input').forEach(cb => { cb.checked = p.platforms.includes(cb.value); });
     }
-    Toast.show('Plan loaded into form', 'info');
+    Toast.show('Plan cargado en el formulario', 'info');
     $('#mp-week').scrollIntoView({ behavior: 'smooth', block: 'center' });
   },
 
@@ -1775,70 +1778,70 @@ Return a JSON array — one object per post:
     const TOOLS = {
       video: [
         {
-          key: 'canva', name: 'Canva', tag: 'Free', url: 'https://www.canva.com/create/videos/',
+          key: 'canva', name: 'Canva', tag: 'Gratis', url: 'https://www.canva.com/create/videos/',
           logo: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5" fill="var(--bg-elev)"/></svg>`,
-          desc: 'Design branded videos, reels, carousels, and story templates. Best for polished on-brand visuals.',
-          bullets: ['Use <strong>Bluveo brand colors</strong>', 'Reels: <strong>9:16</strong> ratio', 'Feed video: <strong>1:1</strong> or <strong>4:5</strong>', 'Stories: <strong>1080×1920px</strong>']
+          desc: 'Diseña videos, reels, carruseles y plantillas de historias con tu marca. Ideal para visuales pulidos y on-brand.',
+          bullets: ['Usa los <strong>colores de marca Bluveo</strong>', 'Reels: proporción <strong>9:16</strong>', 'Video de feed: <strong>1:1</strong> o <strong>4:5</strong>', 'Historias: <strong>1080×1920px</strong>']
         },
         {
-          key: 'capcut', name: 'CapCut', tag: 'Free', url: 'https://www.capcut.com/editor',
+          key: 'capcut', name: 'CapCut', tag: 'Gratis', url: 'https://www.capcut.com/editor',
           logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v8l-4-2z"/></svg>`,
-          desc: 'Fast video editing for Reels and Shorts. Auto-captions, trending templates, and AI tools.',
-          bullets: ['Auto-captions boost reach <strong>40%</strong>', 'Use <strong>trending sounds</strong> for Reels', 'Export <strong>1080p</strong> for all platforms']
+          desc: 'Edición rápida de video para Reels y Shorts. Subtítulos automáticos, plantillas en tendencia y herramientas de IA.',
+          bullets: ['Los subtítulos automáticos suben el alcance <strong>40%</strong>', 'Usa <strong>sonidos en tendencia</strong> para Reels', 'Exporta en <strong>1080p</strong> para todas las plataformas']
         },
         {
-          key: 'runway', name: 'Runway', tag: 'Free', url: 'https://app.runwayml.com/',
+          key: 'runway', name: 'Runway', tag: 'Gratis', url: 'https://app.runwayml.com/',
           logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 8L4 20z"/></svg>`,
-          desc: 'AI video generation, in/outpainting, green-screen removal. For experimental and motion-graphic pieces.',
-          bullets: ['Free tier: <strong>125 credits/mo</strong>', 'Best for <strong>4-10s</strong> motion clips', 'Use for <strong>B-roll</strong> when shooting is off the table']
+          desc: 'Generación de video con IA, in/outpainting y eliminación de fondo verde. Para piezas experimentales y de motion graphics.',
+          bullets: ['Plan gratis: <strong>125 créditos/mes</strong>', 'Ideal para clips de movimiento de <strong>4-10s</strong>', 'Úsalo para <strong>B-roll</strong> cuando grabar no es opción']
         },
       ],
       image: [
         {
-          key: 'bloom', name: 'Bloom', tag: 'Free tier', url: 'https://bloom.so',
+          key: 'bloom', name: 'Bloom', tag: 'Plan gratis', url: 'https://bloom.so',
           logo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12M12 12C12 12 8 10 8 6a4 4 0 0 1 8 0c0 4-4 6-4 6z"/><path d="M12 12c0 0-4.5 1.5-6 5M12 12c0 0 4.5 1.5 6 5"/></svg>`,
-          desc: 'Brand-aware AI image generation. Generate social visuals, ad creatives, and product shots trained on your brand kit.',
-          bullets: ['Reads your <strong>brand colors & fonts</strong>', 'Generate ads, carousels, story covers', 'Upload to Google Drive → paste URL into card']
+          desc: 'Generación de imágenes con IA consciente de la marca. Crea visuales sociales, creativos de anuncios y fotos de producto entrenados con tu kit de marca.',
+          bullets: ['Lee tus <strong>colores y fuentes de marca</strong>', 'Genera anuncios, carruseles, portadas de historias', 'Sube a Google Drive → pega la URL en la tarjeta']
         },
         {
-          key: 'canva', name: 'Canva (graphics)', tag: 'Free', url: 'https://www.canva.com/create/social-media-graphics/',
+          key: 'canva', name: 'Canva (gráficos)', tag: 'Gratis', url: 'https://www.canva.com/create/social-media-graphics/',
           logo: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5" fill="var(--bg-elev)"/></svg>`,
-          desc: 'Quote graphics, carousel slides, and stat cards in 5 minutes. Brand kit keeps it on-tone.',
-          bullets: ['LinkedIn carousel: <strong>1080×1350</strong>', 'IG carousel: <strong>1080×1080</strong>', 'Always export <strong>PNG</strong>']
+          desc: 'Gráficos de cita, diapositivas de carrusel y tarjetas de datos en 5 minutos. El kit de marca lo mantiene on-tone.',
+          bullets: ['Carrusel LinkedIn: <strong>1080×1350</strong>', 'Carrusel IG: <strong>1080×1080</strong>', 'Exporta siempre en <strong>PNG</strong>']
         },
         {
-          key: 'figma', name: 'Figma', tag: 'Free', url: 'https://www.figma.com/',
+          key: 'figma', name: 'Figma', tag: 'Gratis', url: 'https://www.figma.com/',
           logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 24a4 4 0 0 0 4-4v-4H8a4 4 0 0 0 0 8zm-4-12a4 4 0 0 1 4-4h4v8H8a4 4 0 0 1-4-4zm0-8a4 4 0 0 1 4-4h4v8H8a4 4 0 0 1-4-4zm8-4h4a4 4 0 0 1 0 8h-4V0zm8 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/></svg>`,
-          desc: 'For anything that needs precision: pricing tables, diagrams, system maps, or designer-led carousels.',
-          bullets: ['Use the <strong>Bluveo design system</strong> file', 'Auto-layout for carousel frames', 'Export <strong>2x PNG</strong> for retina']
+          desc: 'Para todo lo que requiere precisión: tablas de precios, diagramas, mapas de sistema o carruseles diseñados a mano.',
+          bullets: ['Usa el archivo del <strong>sistema de diseño Bluveo</strong>', 'Auto-layout para los marcos del carrusel', 'Exporta <strong>2x PNG</strong> para retina']
         },
         {
-          key: 'unsplash', name: 'Unsplash', tag: 'Free', url: 'https://unsplash.com/',
+          key: 'unsplash', name: 'Unsplash', tag: 'Gratis', url: 'https://unsplash.com/',
           logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 6.75V0h9v6.75H7.5zm9 3.75H24V24H0V10.5h7.5v6.75h9V10.5z"/></svg>`,
-          desc: 'Royalty-free photography. Search by mood (“quiet morning”, “focused team”) instead of nouns.',
-          bullets: ['Always check <strong>licence</strong> on download', 'Credit creator where visible', 'Pair with type, never use raw']
+          desc: 'Fotografía libre de regalías. Busca por estado de ánimo (“mañana tranquila”, “equipo enfocado”) en vez de sustantivos.',
+          bullets: ['Revisa siempre la <strong>licencia</strong> al descargar', 'Acredita al creador cuando sea visible', 'Combina con tipografía, nunca la uses sola']
         },
       ],
       copy: [
         {
-          key: 'claude', name: 'Claude', tag: 'Free', url: 'https://claude.ai/new',
+          key: 'claude', name: 'Claude', tag: 'Gratis', url: 'https://claude.ai/new',
           logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L3 7v6c0 5 3.5 9 9 11 5.5-2 9-6 9-11V7l-9-5zm0 4l5 2.7v4c0 3.4-2.2 6.2-5 7.5-2.8-1.3-5-4.1-5-7.5v-4L12 6z"/></svg>`,
-          desc: 'Long-form drafts, careful rewrites, threads, briefs. Best when you give it a full Briefing Engine prompt.',
-          bullets: ['Start from a <strong>saved brief</strong>', 'Ask for <strong>3 variants</strong> (A/B/C)', 'Iterate by quoting one line back']
+          desc: 'Borradores largos, reescrituras cuidadas, hilos y briefs. Funciona mejor cuando le das un prompt completo del Motor de Briefs.',
+          bullets: ['Parte de un <strong>brief guardado</strong>', 'Pide <strong>3 variantes</strong> (A/B/C)', 'Itera citando una línea de vuelta']
         },
         {
-          key: 'chatgpt', name: 'ChatGPT', tag: 'Free', url: 'https://chat.openai.com/',
+          key: 'chatgpt', name: 'ChatGPT', tag: 'Gratis', url: 'https://chat.openai.com/',
           logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.28 9.82a5.93 5.93 0 0 0-.51-4.88 6 6 0 0 0-6.47-2.88A6 6 0 0 0 4.55 4.92a5.93 5.93 0 0 0-3.95 2.86 6 6 0 0 0 .74 7.05 5.93 5.93 0 0 0 .51 4.88 6 6 0 0 0 6.47 2.88A6 6 0 0 0 19.45 19.08a5.93 5.93 0 0 0 3.95-2.86 6 6 0 0 0-.74-7.05z"/></svg>`,
-          desc: 'Quick rewrites, brainstorms, headlines. Treat as a sparring partner, not a ghostwriter.',
-          bullets: ['Use <strong>custom GPTs</strong> for repeat tasks', 'Best for <strong>brainstorm</strong>, not final copy', 'Always paste into Bluveo for review']
+          desc: 'Reescrituras rápidas, lluvia de ideas, titulares. Trátalo como compañero de práctica, no como redactor fantasma.',
+          bullets: ['Usa <strong>GPTs personalizados</strong> para tareas repetidas', 'Mejor para <strong>lluvia de ideas</strong>, no para el texto final', 'Pega siempre en Bluveo para revisión']
         },
       ],
       hosting: [
         {
-          key: 'gdrive', name: 'Google Drive', tag: 'Free', url: 'https://drive.google.com/',
-          logo: `<svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M4.5 20.5L2 16.5l6-10.5h4L6 16.5h-1.5L4.5 20.5zM22 16.5L19.5 20.5H9l2.5-4H22zM15.5 6l2.5 4.5-4.5 7.5-2.5-4.5L15.5 6z” opacity=”.87”/></svg>`,
-          desc: 'Upload image to Google Drive, share it publicly, paste the URL into the card media field.',
-          bullets: ['Upload → right-click → Share', 'Set to <strong>”Anyone with the link”</strong>', 'Copy link → paste in card → push to Buffer']
+          key: 'gdrive', name: 'Google Drive', tag: 'Gratis', url: 'https://drive.google.com/',
+          logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 20.5L2 16.5l6-10.5h4L6 16.5h-1.5L4.5 20.5zM22 16.5L19.5 20.5H9l2.5-4H22zM15.5 6l2.5 4.5-4.5 7.5-2.5-4.5L15.5 6z" opacity=".87"/></svg>`,
+          desc: 'Sube la imagen a Google Drive, compártela públicamente y pega la URL en el campo de medios de la tarjeta.',
+          bullets: ['Subir → clic derecho → Compartir', 'Configura en <strong>"Cualquiera con el enlace"</strong>', 'Copia el enlace → pégalo en la tarjeta → envía a Buffer']
         },
       ],
     };
@@ -1853,7 +1856,7 @@ Return a JSON array — one object per post:
         <div class="tool-desc">${t.desc}</div>
         <ul class="tool-bullets">${t.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
         <a class="tool-open" href="${t.url}" target="_blank" rel="noopener">
-          <span>Open ${escapeHtml(t.name.split(' ')[0])}</span>
+          <span>Abrir ${escapeHtml(t.name.split(' ')[0])}</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
         </a>
       </div>
@@ -1888,16 +1891,16 @@ function renderCard(c) {
 
   if (c.status === 'drafting' || c.status === 'ideation') {
     action = `<div class="kard-action">
-      <button class="btn brand-claude" data-claude="${c.id}">${svgIcon('cmd')} Open in Claude</button>
-      <button class="btn kard-review-btn" data-to-review="${c.id}" title="Move to In Review">${svgIcon('eye')} Review</button>
+      <button class="btn brand-claude" data-claude="${c.id}">${svgIcon('cmd')} Abrir en Claude</button>
+      <button class="btn kard-review-btn" data-to-review="${c.id}" title="Mover a En revisión">${svgIcon('eye')} Revisar</button>
     </div>`;
   } else if (c.status === 'review') {
     action = `<div class="kard-action">
-      <button class="btn kard-approve-btn" data-approve="${c.id}">${svgIcon('check')} Approve</button>
+      <button class="btn kard-approve-btn" data-approve="${c.id}">${svgIcon('check')} Aprobar</button>
     </div>`;
   } else if (c.status === 'approved') {
     action = `<div class="kard-action">
-      <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Schedule</button>
+      <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Programar</button>
       <button class="btn brand-buffer" data-buffer="${c.id}">${svgIcon('send')} Buffer</button>
       ${metaBtn}
     </div>`;
@@ -1907,20 +1910,20 @@ function renderCard(c) {
     if (schFmt) extra = `<div class="kard-time-badge ${isDue ? 'kard-due-time' : 'kard-scheduled-time'}">${svgIcon(isDue ? 'send' : 'clock')} ${schFmt}</div>`;
     if (isDue) {
       action = `<div class="kard-action">
-        <button class="btn kard-publish-btn" data-publish-buffer="${c.id}">${svgIcon('send')} Publish via Buffer</button>
+        <button class="btn kard-publish-btn" data-publish-buffer="${c.id}">${svgIcon('send')} Publicar vía Buffer</button>
         ${metaBtn}
       </div>`;
     } else if (!c.scheduledFor) {
       action = `<div class="kard-action">
-        <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Set Publish Time</button>
+        <button class="btn kard-schedule-btn" data-schedule="${c.id}">${svgIcon('calendar')} Definir hora de publicación</button>
       </div>`;
     }
   } else if (c.status === 'failed') {
-    const reason = c.failureReason ? escapeHtml(c.failureReason.slice(0, 60)) : 'Publish failed';
-    const full = escapeHtml(c.failureReason || 'Publish failed');
+    const reason = c.failureReason ? escapeHtml(c.failureReason.slice(0, 60)) : 'Error al publicar';
+    const full = escapeHtml(c.failureReason || 'Error al publicar');
     extra = `<div class="kard-failure-reason" title="${full}">${reason}${(c.failureReason || '').length > 60 ? '…' : ''}</div>`;
     action = `<div class="kard-action">
-      <button class="btn kard-retry-btn" data-retry="${c.id}">${svgIcon('retry')} Retry</button>
+      <button class="btn kard-retry-btn" data-retry="${c.id}">${svgIcon('retry')} Reintentar</button>
     </div>`;
   } else if (c.status === 'published') {
     const pubFmt = c.publishedAt ? fmtDatetime(c.publishedAt) : (c.date ? fmtDate(c.date) : '');
@@ -1931,6 +1934,7 @@ function renderCard(c) {
   const prevStatus = statusIdx > 0 ? STATUSES[statusIdx - 1].label : null;
   const nextStatus = statusIdx < STATUSES.length - 1 ? STATUSES[statusIdx + 1].label : null;
   const keyHint = [prevStatus && `Shift+← → ${prevStatus}`, nextStatus && `Shift+→ → ${nextStatus}`].filter(Boolean).join(' · ');
+  // (atajos de teclado)
 
   return `
     <div class="kard${c.status === 'failed' ? ' kard-failed' : ''}" draggable="true" tabindex="0" data-id="${c.id}" aria-label="${escapeHtml(c.title)} · ${escapeHtml(c.platform)} · ${statusLabel(c.status)}${keyHint ? ' · ' + keyHint : ''}">
@@ -1946,7 +1950,7 @@ function renderCard(c) {
         <div class="links">
           ${c.figma ? `<a href="${c.figma}" target="_blank" rel="noopener" title="Figma" onclick="event.stopPropagation()">${svgIcon('link')}</a>` : ''}
           ${c.canva ? `<a href="${c.canva}" target="_blank" rel="noopener" title="Canva" onclick="event.stopPropagation()">${svgIcon('link')}</a>` : ''}
-          ${c.content ? `<span title="Has copy" style="display:grid;place-items:center;width:18px;height:18px;border-radius:4px;color:var(--good);">${svgIcon('check')}</span>` : ''}
+          ${c.content ? `<span title="Tiene texto" style="display:grid;place-items:center;width:18px;height:18px;border-radius:4px;color:var(--good);">${svgIcon('check')}</span>` : ''}
         </div>
       </div>
       ${action}
@@ -1985,12 +1989,12 @@ function setupKanbanDnd() {
       if (c && c.status !== newStatus) {
         const prev = c.status;
         c.status = newStatus;
-        State.pushActivity(`Moved "<span class="em">${escapeHtml(c.title)}</span>" → ${statusLabel(newStatus)}`, 'arrow');
+        State.pushActivity(`Movió "<span class="em">${escapeHtml(c.title)}</span>" → ${statusLabel(newStatus)}`, 'arrow');
         State.save();
         DB.saveCard(c).catch(devWarn);
         App.renderKanban();
         App.renderDashboard();
-        Toast.show(`Moved to ${statusLabel(newStatus)}`, 'info', { label: 'Undo', handler: () => { c.status = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderKanban(); App.renderDashboard(); } });
+        Toast.show(`Movido a ${statusLabel(newStatus)}`, 'info', { label: 'Deshacer', handler: () => { c.status = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderKanban(); App.renderDashboard(); } });
       }
     });
   });
@@ -1999,16 +2003,16 @@ function setupKanbanDnd() {
   board.querySelectorAll('[data-claude]').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
     const c = State.cards.find(x => x.id === b.dataset.claude);
-    const prompt = c ? `Write a ${c.platform} post titled "${c.title}". Tone: confident, plain language. End with a clear CTA.` : '';
+    const prompt = c ? `Escribe un post de ${c.platform} titulado "${c.title}". Tono: seguro, lenguaje claro. Termina con un CTA claro.` : '';
     copyText(prompt, () => {
-      Toast.show('Prompt copied — opening Claude…', 'info');
+      Toast.show('Prompt copiado — abriendo Claude…', 'info');
       setTimeout(() => window.open('https://claude.ai/new', '_blank', 'noopener'), 250);
     });
   }));
   board.querySelectorAll('[data-buffer]').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
     const c = State.cards.find(x => x.id === b.dataset.buffer);
-    if (!c || !c.content) { Toast.show('Add final copy on the card first', 'warn'); return; }
+    if (!c || !c.content) { Toast.show('Añade primero el texto final en la tarjeta', 'warn'); return; }
     App.openBufferPush(c);
   }));
 
@@ -2017,12 +2021,12 @@ function setupKanbanDnd() {
     const c = State.cards.find(x => x.id === b.dataset.toReview);
     if (!c) return;
     c.status = 'review';
-    State.pushActivity(`Sent "<span class="em">${escapeHtml(c.title)}</span>" to In Review`, 'eye');
+    State.pushActivity(`Envió "<span class="em">${escapeHtml(c.title)}</span>" a En revisión`, 'eye');
     State.save();
     DB.saveCard(c).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
-    Toast.show('Moved to In Review', 'info');
+    Toast.show('Movido a En revisión', 'info');
   }));
 
   board.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', (e) => {
@@ -2030,12 +2034,12 @@ function setupKanbanDnd() {
     const c = State.cards.find(x => x.id === b.dataset.approve);
     if (!c) return;
     c.status = 'approved';
-    State.pushActivity(`Approved "<span class="em">${escapeHtml(c.title)}</span>"`, 'check');
+    State.pushActivity(`Aprobó "<span class="em">${escapeHtml(c.title)}</span>"`, 'check');
     State.save();
     DB.saveCard(c).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
-    Toast.show('Post approved ✓', 'success');
+    Toast.show('Post aprobado ✓', 'success');
   }));
 
   board.querySelectorAll('[data-schedule]').forEach(b => b.addEventListener('click', (e) => {
@@ -2050,12 +2054,12 @@ function setupKanbanDnd() {
     c.status = 'approved';
     c.failureReason = null;
     c.scheduledFor = null;
-    State.pushActivity(`Retrying "<span class="em">${escapeHtml(c.title)}</span>"`, 'retry');
+    State.pushActivity(`Reintentando "<span class="em">${escapeHtml(c.title)}</span>"`, 'retry');
     State.save();
     DB.saveCard(c).catch(devWarn);
     App.renderKanban();
     App.renderDashboard();
-    Toast.show('Moved back to Approved — reschedule to retry', 'info');
+    Toast.show('Devuelto a Aprobado — reprograma para reintentar', 'info');
   }));
 
   board.querySelectorAll('[data-publish-buffer]').forEach(b => b.addEventListener('click', (e) => {
@@ -2068,10 +2072,10 @@ function setupKanbanDnd() {
   board.querySelectorAll('[data-meta]').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
     const c = State.cards.find(x => x.id === b.dataset.meta);
-    if (!c || !c.content) { Toast.show('Add final copy on the card first', 'warn'); return; }
+    if (!c || !c.content) { Toast.show('Añade primero el texto final en la tarjeta', 'warn'); return; }
     copyText(c.content, () => {});
     window.open('https://business.facebook.com/latest/composer/', '_blank', 'noopener');
-    Toast.show('Copy pasted to clipboard — paste in Meta composer', 'info');
+    Toast.show('Texto copiado al portapapeles — pégalo en el editor de Meta', 'info');
   }));
 }
 
@@ -2100,13 +2104,13 @@ function setupCalendarDnd() {
         const prev = c.date;
         c.date = iso;
         if (c.status === 'ideation' || c.status === 'drafting') c.status = 'scheduled';
-        State.pushActivity(`Rescheduled "<span class="em">${escapeHtml(c.title)}</span>" → ${fmtDate(iso)}`, 'clock');
+        State.pushActivity(`Reprogramó "<span class="em">${escapeHtml(c.title)}</span>" → ${fmtDate(iso)}`, 'clock');
         State.save();
         DB.saveCard(c).catch(devWarn);
         App.renderCalendar();
         App.renderKanban();
         App.renderDashboard();
-        Toast.show(`Rescheduled to ${fmtDate(iso)}`, 'success', { label: 'Undo', handler: () => { c.date = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderCalendar(); App.renderKanban(); App.renderDashboard(); } });
+        Toast.show(`Reprogramado para ${fmtDate(iso)}`, 'success', { label: 'Deshacer', handler: () => { c.date = prev; State.save(); DB.saveCard(c).catch(devWarn); App.renderCalendar(); App.renderKanban(); App.renderDashboard(); } });
       }
     });
   });
@@ -2137,18 +2141,18 @@ const Palette = {
   close() { $('#palette-scrim').classList.remove('open'); },
   baseItems() {
     return [
-      { section: 'Navigate', icon: 'arrow', label: 'Go to Dashboard', hint: 'G D', fn: () => App.switchView('dashboard') },
-      { section: 'Navigate', icon: 'doc', label: 'Go to Briefing Engine', hint: 'G B', fn: () => App.switchView('briefs') },
-      { section: 'Navigate', icon: 'plus', label: 'Go to Create', hint: 'G E', fn: () => App.switchView('create') },
-      { section: 'Navigate', icon: 'arrow', label: 'Go to Kanban', hint: 'G K', fn: () => App.switchView('kanban') },
-      { section: 'Navigate', icon: 'clock', label: 'Go to Calendar', hint: 'G C', fn: () => App.switchView('calendar') },
-      { section: 'Navigate', icon: 'chart', label: 'Go to Analytics', hint: 'G A', fn: () => App.switchView('analytics') },
-      { section: 'Navigate', icon: 'settings', label: 'Go to Integrations', hint: 'G I', fn: () => App.switchView('settings') },
-      { section: 'Create', icon: 'plus', label: 'New task', hint: 'N', fn: () => App.openCardModal() },
-      { section: 'Create', icon: 'doc', label: 'New brief', hint: 'G B', fn: () => { App.switchView('briefs'); setTimeout(() => $('#b-title').focus(), 100); } },
-      { section: 'Actions', icon: 'sun', label: 'Toggle theme', hint: '', fn: () => App.applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark') },
-      { section: 'Actions', icon: 'cmd', label: 'Toggle sidebar', hint: '⌘\\', fn: () => $('#app').classList.toggle('sidebar-collapsed') },
-      { section: 'Actions', icon: 'send', label: 'Sync Meta analytics', hint: '', fn: () => { App.switchView('analytics'); setTimeout(() => App.metaSync(), 200); } },
+      { section: 'Navegar', icon: 'arrow', label: 'Ir al Panel', hint: 'G D', fn: () => App.switchView('dashboard') },
+      { section: 'Navegar', icon: 'doc', label: 'Ir al Motor de Briefs', hint: 'G B', fn: () => App.switchView('briefs') },
+      { section: 'Navegar', icon: 'plus', label: 'Ir a Crear', hint: 'G E', fn: () => App.switchView('create') },
+      { section: 'Navegar', icon: 'arrow', label: 'Ir al Kanban', hint: 'G K', fn: () => App.switchView('kanban') },
+      { section: 'Navegar', icon: 'clock', label: 'Ir al Calendario', hint: 'G C', fn: () => App.switchView('calendar') },
+      { section: 'Navegar', icon: 'chart', label: 'Ir a Analítica', hint: 'G A', fn: () => App.switchView('analytics') },
+      { section: 'Navegar', icon: 'settings', label: 'Ir a Integraciones', hint: 'G I', fn: () => App.switchView('settings') },
+      { section: 'Crear', icon: 'plus', label: 'Nueva tarea', hint: 'N', fn: () => App.openCardModal() },
+      { section: 'Crear', icon: 'doc', label: 'Nuevo plan semanal', hint: 'G B', fn: () => { App.switchView('briefs'); setTimeout(() => $('#mp-goals')?.focus(), 100); } },
+      { section: 'Acciones', icon: 'sun', label: 'Cambiar tema', hint: '', fn: () => App.applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark') },
+      { section: 'Acciones', icon: 'cmd', label: 'Mostrar/ocultar barra lateral', hint: '⌘\\', fn: () => $('#app').classList.toggle('sidebar-collapsed') },
+      { section: 'Acciones', icon: 'send', label: 'Sincronizar analítica de Meta', hint: '', fn: () => { App.switchView('analytics'); setTimeout(() => App.metaSync(), 200); } },
     ];
   },
   render() {
@@ -2156,7 +2160,7 @@ const Palette = {
     let items = Palette.baseItems();
     // also include search over cards & briefs
     State.cards.forEach(c => items.push({
-      section: 'Tasks',
+      section: 'Tareas',
       icon: 'doc',
       label: c.title,
       hint: c.platform + ' · ' + statusLabel(c.status),
@@ -2166,7 +2170,7 @@ const Palette = {
       section: 'Briefs',
       icon: 'doc',
       label: b.title,
-      hint: 'open brief',
+      hint: 'copiar brief',
       fn: () => { App.switchView('briefs'); setTimeout(() => App.loadBrief(b.id), 100); }
     }));
 
@@ -2189,7 +2193,7 @@ const Palette = {
         ${it.hint ? `<span class="hint">${escapeHtml(it.hint)}</span>` : ''}
       </div>`;
     });
-    if (!items.length) html = `<div class="empty-mini" style="padding:30px;">${svgIcon('cmd')}<div>No matches.</div></div>`;
+    if (!items.length) html = `<div class="empty-mini" style="padding:30px;">${svgIcon('cmd')}<div>Sin resultados.</div></div>`;
     $('#palette-list').innerHTML = html;
     $$('#palette-list .palette-item').forEach(el => {
       el.addEventListener('click', () => { Palette.active = parseInt(el.dataset.idx); Palette.commit(); });
